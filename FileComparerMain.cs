@@ -1,11 +1,12 @@
 ﻿using CommandLine;
+using FileComparer.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FileComparer.Models
+namespace FileComparer
 {
     public class FileComparerMain
     {
@@ -13,23 +14,21 @@ namespace FileComparer.Models
 
         public async Task GetIndexOptions(GetDifferenceIndexOption opts)
         {
-               
+
         }
 
-        public async Task GetLinesOption(GetDifferentLinesOption opts) 
+        public async Task GetLinesOption(GetDifferentLinesOption opts)
         {
 
         }
 
         public async Task GetFilesParityOption(GetFileParityOption opts)
         {
-            bool printDiffs = opts.PrintTopDiffs != null ? true:false;
-
             _comparer = new SequentialFileComparer(opts.File1InputPath, opts.File2InputPath)
             {
-                printDiffs = printDiffs
+                printDiffs = opts.PrintTopDiffs
             };
-            
+
             _comparer.Compare();
         }
 
@@ -50,12 +49,12 @@ namespace FileComparer.Models
                     GetDifferentLinesOption,
                     GetFileParityOption>(args)
                   .MapResult(
-                    (GetDifferenceIndexOption opts) => this.GetIndexOptions(opts),
-                    (GetDifferentLinesOption opts) => this.GetLinesOption(opts),
-                    (GetFileParityOption opts) => this.GetFilesParityOption(opts),
+                    (GetDifferenceIndexOption opts) => GetIndexOptions(opts),
+                    (GetDifferentLinesOption opts) => GetLinesOption(opts),
+                    (GetFileParityOption opts) => GetFilesParityOption(opts),
                     errs => ReportCommandArgumentErrors(errs));
             }
-            catch(Exception e) 
+            catch (Exception e)
             {
                 Console.WriteLine("Some unknown exception occurred " + e.Message);
             }

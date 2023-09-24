@@ -10,7 +10,7 @@ namespace FileComparer.Models
 {
     public class SequentialFileComparer : FileComparer
     {
-        public bool printDiffs { get; set; }
+        public bool printDiffs { get; set; } = false;
 
         public SequentialFileComparer(string file1Path,  string file2Path)
         {
@@ -43,7 +43,7 @@ namespace FileComparer.Models
                         if (!line1.Equals(line2))
                         {
                             noOfDifferentLines++;
-                            if (printDiffs && countOfPrinted < 5)
+                            if (printDiffs == true && countOfPrinted < 5)
                             {
                                 Console.WriteLine($"[File1::{lineNumber} :: {line1}");
                                 Console.WriteLine($"[File2::{lineNumber} :: {line2}");
@@ -62,13 +62,11 @@ namespace FileComparer.Models
                     else if (reader2.ReadLine() != null
                         && reader1.ReadLine() == null) // There are still lines left in File2
                     {
-                        Console.WriteLine("This ran else if");
                         AreFilesSame = false;
                         summary = new Summary(FileName.File2, lineNumber, noOfDifferentLines);
                     }
                     else
                     {
-                        Console.WriteLine("This ran...else");
                         summary = new Summary(noOfDifferentLines);
                     }
 
