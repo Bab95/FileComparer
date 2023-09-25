@@ -19,6 +19,13 @@ namespace FileComparer
 
         public async Task GetLinesOption(GetDifferentLinesOption opts)
         {
+            _comparer = new ChunkedFileComparer(opts.File1InputPath, opts.File2InputPath)
+            {
+                outputKind = opts.OutPath == null ? OutputKind.OnConsole : OutputKind.FileWriting,
+                OutPath = opts.OutPath
+            };
+
+            ChunkedFileComparer.printIndexes = false;
 
         }
 

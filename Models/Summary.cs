@@ -31,6 +31,10 @@ namespace FileComparer.Models
             this.noOfDifferences = noOfDifferences;
         }
 
+        public Summary(FileName fileName)
+        {
+            this.fileName = fileName;
+        }
 
         public override string ToString() 
         {

@@ -8,13 +8,21 @@ using static FileComparer.FileComparer_;
 
 namespace FileComparer.Models
 {
+    /// <summary>
+    /// Compares File in chunks and prints Indexes.
+    /// Printing indexes is a heavy process should be used accordingly.
+    /// </summary>
     public class ChunkedFileComparer : FileComparer
     {
         public static int countOfActiveWorker = 0;
 
         public static object activeWorkerLock = new object();
 
-        public static ConcurrentQueue<object[]> differences { get; set; } = new ConcurrentQueue<object[]>();
+        public static bool printIndexes { get; set; } = false;
+
+        public OutputKind outputKind { get; set; }
+
+        public static ConcurrentQueue<object[]> FileDifferences { get; set; } = new ConcurrentQueue<object[]>();
 
         public ChunkedFileComparer(string file1Path, string file2Path)
         {
@@ -22,15 +30,52 @@ namespace FileComparer.Models
             this.File2Path = file2Path;
         }
 
+        public ChunkedFileComparer(string file1Path, string file2Path, bool printIndexes_) 
+            : this(file1Path, file2Path)
+        {
+            printIndexes = printIndexes_;
+        }
 
 
         public override void Compare()
         {
+            int chunksize = Constants.ChunkSize;
 
+            try
+            {
+                // At this point we are running sequential so no need to add lock here.
+                countOfActiveWorker++;
+                
+                ThreadPool.SetMaxThreads(Constants.MaxThreadsCount, Constants.MaxThreadsCount);
+
+                ThreadPool.QueueUserWorkItem(new WaitCallback(CompareAllLines), chunksize);
+                // CompareAllLines(chunksize);
+
+            }catch (FileNotFoundException e)
+            {
+                Console.WriteLine($"File not found. Please check file path {e.FileName} ");
+            }catch(Exception e)
+            {
+                Console.WriteLine($"Unknown Exception caught {e.Message}");
+            }
+            finally
+            {
+                lock (activeWorkerLock)
+                {
+                    lock (activeWorkerLock)
+                    {
+                        while (countOfActiveWorker > 0)
+                        {
+                            Monitor.Wait(activeWorkerLock);
+                        }
+                    }
+                }
+            }
         }
 
-        private void CompareAllLines(int chunkSize)
+        public  void CompareAllLines(object obj)
         {
+            int chunkSize = (int)obj;
             List<string> linesChunk1 = new List<string>();
             List<string> linesChunk2 = new List<string>();
             using (StreamReader reader1 = new StreamReader(this.File1Path))
@@ -59,7 +104,7 @@ namespace FileComparer.Models
                             ++countOfActiveWorker;
                         }
 
-                        while (countOfActiveWorker >= 500)
+                        while (countOfActiveWorker >= Constants.MaxJobsInPool)
                         {
                             // wait before queuing new tasks
                             // we don't want to overwhelm the memory.........
@@ -94,12 +139,12 @@ namespace FileComparer.Models
                 if (reader1.ReadLine() != null
                     && reader2.ReadLine() == null) //There are still some lines left in File1
                 {
-                    
+                    summary = new Summary(FileName.File2);
                 }
                 else if (reader2.ReadLine() != null
                     && reader1.ReadLine() == null) // There are still lines left in File2
                 {
-                    
+                    summary = new Summary(FileName.File1);
                 }
             }
 
@@ -118,14 +163,19 @@ namespace FileComparer.Models
         public static void ProcessChunk(object data)
         {
             ChunkData chunkData = (ChunkData)data;
-
+            
             for (int index = 0; index < chunkData.Lines1.Count; index++)
             {
                 string _line1 = chunkData.Lines1[index];
                 string _line2 = chunkData.Lines2[index];
                 if (!_line1.Equals(_line2, StringComparison.Ordinal))
                 {
-                    if (flag)
+                    List<object> diff_list = new List<object>();
+                    if (printIndexes == false)
+                    {
+                        diff_list.Add(chunkData.LineNumber + index + 1 );
+                    }
+                    else if (printIndexes == true)
                     {
                         var strDiff = Enumerable.Range(0, Math.Max(_line1.Length, _line2.Length))
                                         .Where(i => i >= _line1.Length || i >= _line2.Length || _line1[i] != _line2[i])
@@ -137,9 +187,8 @@ namespace FileComparer.Models
                                         })
                                         .ToList();
 
-                        List<object> diff_list = new List<object>();
                         diff_list.AddRange(new object[]{ ConsoleColor.Green,
-                        $"Line number : {chunkData.LineNumber + index + 1} -> " });
+                        $"Line number : {chunkData.LineNumber + index + 1} " });
                         bool isFirstDiff = true;
                         foreach (var _diff in strDiff)
                         {
@@ -151,7 +200,7 @@ namespace FileComparer.Models
 
                             isFirstDiff = false;
 
-                            object[] diff = {   " At index:",
+                            object[] diff = {   " At:",
                                             ConsoleColor.DarkRed,
                                             _diff.Index,
                                             ConsoleColor.White,
@@ -168,16 +217,15 @@ namespace FileComparer.Models
                                         };
                             diff_list.AddRange(diff);
                         }
+                    }
 
-                        differences.Enqueue(diff_list.ToArray());
-                    }
-                    else
-                    {
-                        _diff2.Enqueue(chunkData.LineNumber + index);
-                    }
+
+                    FileDifferences.Enqueue(diff_list.ToArray());
+
                 }
             }
 
+            // Finally job is complete now reduce to active job count.
             lock (activeWorkerLock)
             {
                 --countOfActiveWorker;

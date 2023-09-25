@@ -12,6 +12,8 @@ namespace FileComparer.Models
 
         public string File2Path { get; set; }
 
+        public string OutPath { get; set; }
+
         public bool AreFilesSame { get; internal set; }
 
         public Summary summary { get; set; }
