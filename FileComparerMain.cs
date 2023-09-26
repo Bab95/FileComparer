@@ -78,6 +78,12 @@ namespace FileComparer
                 OutPath = opts.OutPath
             };
 
+            if (opts.OutPath != null && File.Exists(opts.OutPath))
+            {
+                Console.WriteLine("Output path already exits! File will be overwritten.....");
+                File.Delete(opts.OutPath);
+            }
+
             ChunkedFileComparer.printIndexes = false;
 
             ChunkedFileComparer.countOfActiveWorker++;
