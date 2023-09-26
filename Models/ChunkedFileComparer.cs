@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static FileComparer.FileComparer_;
 
 namespace FileComparer.Models
 {
@@ -23,6 +22,8 @@ namespace FileComparer.Models
         public OutputKind outputKind { get; set; }
 
         public static ConcurrentQueue<object[]> FileDifferences { get; set; } = new ConcurrentQueue<object[]>();
+
+        public static ConcurrentQueue<int> LineDifferences { get; set; } = new ConcurrentQueue<int>();
 
         public ChunkedFileComparer(string file1Path, string file2Path)
         {
@@ -147,11 +148,6 @@ namespace FileComparer.Models
                 // This is where we complete the Compare function worker thread task.
                 countOfActiveWorker--;
                 Monitor.PulseAll(activeWorkerLock);
-
-                while (countOfActiveWorker > 0)
-                {
-                    Monitor.Wait(activeWorkerLock);
-                }
             }
         }
 
@@ -165,13 +161,14 @@ namespace FileComparer.Models
                 string _line2 = chunkData.Lines2[index];
                 if (!_line1.Equals(_line2, StringComparison.Ordinal))
                 {
-                    List<object> diff_list = new List<object>();
+                    
                     if (printIndexes == false)
                     {
-                        diff_list.Add(chunkData.LineNumber + index + 1 );
+                        LineDifferences.Enqueue(chunkData.LineNumber + index + 1 );
                     }
                     else if (printIndexes == true)
                     {
+                        List<object> diff_list = new List<object>();
                         var strDiff = Enumerable.Range(0, Math.Max(_line1.Length, _line2.Length))
                                         .Where(i => i >= _line1.Length || i >= _line2.Length || _line1[i] != _line2[i])
                                         .Select(i => new
@@ -205,10 +202,11 @@ namespace FileComparer.Models
                                         };
                             diff_list.AddRange(diff);
                         }
+                        FileDifferences.Enqueue(diff_list.ToArray());
                     }
 
 
-                    FileDifferences.Enqueue(diff_list.ToArray());
+                    
 
                 }
             }

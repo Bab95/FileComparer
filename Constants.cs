@@ -11,7 +11,7 @@ namespace FileComparer
         /// <summary>
         /// Chunk size for breaking file for multithreaded processing.
         /// </summary>
-        public static readonly int ChunkSize = 20000;
+        public static readonly int ChunkSize = 10;
 
         /// <summary>
         /// Max no of jobs allowed in threadpool.

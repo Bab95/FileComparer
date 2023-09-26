@@ -85,34 +85,38 @@ namespace FileComparer
 
             object obj = new object();
 
-            object[] currentDiff;
+            //object[] currentDiff;
 
-            Thread.CurrentThread.Priority = ThreadPriority.Lowest;
+            //Thread.CurrentThread.Priority = ThreadPriority.Lowest;
 
             int totalDiffCount = 0;
-
-            while (ChunkedFileComparer.countOfActiveWorker > 0)
+            int currentLine = 0;
+            while (ChunkedFileComparer.countOfActiveWorker > 0 || ChunkedFileComparer.LineDifferences.TryDequeue(out currentLine))
             {
-                totalDiffCount++;
                 if (opts.OutPath == null)
                 {
-                    ChunkedFileComparer.FileDifferences.TryDequeue(out currentDiff);
-                    Console.WriteLine(currentDiff);
+                    
+                    if (currentLine != 0)
+                    {
+                        totalDiffCount++;
+                        Console.WriteLine(currentLine);
+                    }
                 }
                 else
                 {
-                    using (StreamWriter writer = new StreamWriter(opts.OutPath, false))
+                    using (StreamWriter writer = new StreamWriter(opts.OutPath, true))
                     {
-                        ChunkedFileComparer.FileDifferences.TryDequeue(out currentDiff);
-                        await writer.WriteLineAsync(currentDiff.ToString());
+                        if (currentLine != 0)
+                        {
+                            totalDiffCount++;
+                            await writer.WriteLineAsync(currentLine.ToString());
+                        }
                     }
                 }
             }
 
             (_comparer as ChunkedFileComparer).summary.noOfDifferences = totalDiffCount;
             Console.WriteLine((_comparer as ChunkedFileComparer).summary.ToString());
-
-
         }
 
         public async Task GetFilesParityOption(GetFileParityOption opts)
@@ -123,10 +127,7 @@ namespace FileComparer
             };
 
             ChunkedFileComparer.countOfActiveWorker++;
-
-            ThreadPool.SetMaxThreads(Constants.MaxThreadsCount, Constants.MaxThreadsCount);
-
-            ThreadPool.QueueUserWorkItem(new WaitCallback(_comparer.Compare), mainObject);
+            _comparer.Compare(mainObject);
         }
 
         public static async Task ReportCommandArgumentErrors(IEnumerable<Error> err)
