@@ -117,6 +117,8 @@ namespace FileComparer
 
             (_comparer as ChunkedFileComparer).summary.noOfDifferences = totalDiffCount;
             Console.WriteLine((_comparer as ChunkedFileComparer).summary.ToString());
+            watch.Stop();
+            Console.WriteLine($"Total Time Taken: {watch.ElapsedMilliseconds}");
         }
 
         public async Task GetFilesParityOption(GetFileParityOption opts)
