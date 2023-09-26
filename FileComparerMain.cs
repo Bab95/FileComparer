@@ -59,13 +59,15 @@ namespace FileComparer
 
             (_comparer as ChunkedFileComparer).summary.noOfDifferences = totalDiffCount;
 
-            (_comparer as ChunkedFileComparer).summary.ToString();
+            Console.WriteLine((_comparer as ChunkedFileComparer).summary.ToString());
 
             watch.Stop();
         }
 
         public async Task GetLinesOption(GetDifferentLinesOption opts)
         {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+
             _comparer = new ChunkedFileComparer(opts.File1InputPath, opts.File2InputPath)
             {
                 outputKind = opts.OutPath == null ? OutputKind.OnConsole : OutputKind.FileWriting,
@@ -73,6 +75,43 @@ namespace FileComparer
             };
 
             ChunkedFileComparer.printIndexes = false;
+
+            ChunkedFileComparer.countOfActiveWorker++;
+
+            ThreadPool.SetMaxThreads(Constants.MaxThreadsCount, Constants.MaxThreadsCount);
+
+            ThreadPool.QueueUserWorkItem(new WaitCallback(_comparer.Compare), mainObject);
+
+
+            object obj = new object();
+
+            object[] currentDiff;
+
+            Thread.CurrentThread.Priority = ThreadPriority.Lowest;
+
+            int totalDiffCount = 0;
+
+            while (ChunkedFileComparer.countOfActiveWorker > 0)
+            {
+                totalDiffCount++;
+                if (opts.OutPath == null)
+                {
+                    ChunkedFileComparer.FileDifferences.TryDequeue(out currentDiff);
+                    Console.WriteLine(currentDiff);
+                }
+                else
+                {
+                    using (StreamWriter writer = new StreamWriter(opts.OutPath, false))
+                    {
+                        ChunkedFileComparer.FileDifferences.TryDequeue(out currentDiff);
+                        await writer.WriteLineAsync(currentDiff.ToString());
+                    }
+                }
+            }
+
+            (_comparer as ChunkedFileComparer).summary.noOfDifferences = totalDiffCount;
+            Console.WriteLine((_comparer as ChunkedFileComparer).summary.ToString());
+
 
         }
 
