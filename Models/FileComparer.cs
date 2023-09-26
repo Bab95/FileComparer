@@ -18,6 +18,6 @@ namespace FileComparer.Models
 
         public Summary summary { get; set; }
 
-        public abstract void Compare();
+        public abstract void Compare(object obj);
     }
 }

@@ -8,11 +8,11 @@ namespace FileComparer.Models
 {
     public class Summary
     {
-        FileName fileName { get; set; }
+        public FileName fileName { get; set; }
        
-        long lineNumber { get; set; }
+        public long lineNumber { get; set; }
 
-        long noOfDifferences { get; set; }
+        public long noOfDifferences { get; set; }
 
 
         public Summary(FileName fileName, long lineNumber, long noOfDifferences) : this(fileName, lineNumber)
@@ -20,7 +20,7 @@ namespace FileComparer.Models
             this.noOfDifferences = noOfDifferences;
         }
 
-        private Summary(FileName fileName, long lineNumber)
+        public Summary(FileName fileName, long lineNumber)
         {
             this.fileName = fileName;
             this.lineNumber = lineNumber;

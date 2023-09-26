@@ -23,7 +23,7 @@ namespace FileComparer.Models
             Console.WriteLine(this.summary.ToString());
         }
 
-        public override void Compare()
+        public override void Compare(object obj)
         {
             var watch = System.Diagnostics.Stopwatch.StartNew();
 

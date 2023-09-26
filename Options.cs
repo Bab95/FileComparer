@@ -17,7 +17,7 @@ public class Options
 [Verb("GetDifferenceIndexes", HelpText = "Prints difference indexes along with line number. This operation is slow and may consume more space.")]
 public class GetDifferenceIndexOption : Options
 {
-    [Option('o', "outpath", Required = false, HelpText = "Result Outpath")]
+    [Option('o', "outpath", Required = true, HelpText = "Result Outpath")]
     public string OutPath { get; set; }
 }
 

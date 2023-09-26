@@ -37,19 +37,13 @@ namespace FileComparer.Models
         }
 
 
-        public override void Compare()
+        public override void Compare(object obj)
         {
             int chunksize = Constants.ChunkSize;
 
             try
             {
-                // At this point we are running sequential so no need to add lock here.
-                countOfActiveWorker++;
-                
-                ThreadPool.SetMaxThreads(Constants.MaxThreadsCount, Constants.MaxThreadsCount);
-
-                ThreadPool.QueueUserWorkItem(new WaitCallback(CompareAllLines), chunksize);
-                // CompareAllLines(chunksize);
+                CompareAllLines(chunksize);
 
             }catch (FileNotFoundException e)
             {
@@ -62,12 +56,9 @@ namespace FileComparer.Models
             {
                 lock (activeWorkerLock)
                 {
-                    lock (activeWorkerLock)
+                    while (countOfActiveWorker > 0)
                     {
-                        while (countOfActiveWorker > 0)
-                        {
-                            Monitor.Wait(activeWorkerLock);
-                        }
+                        Monitor.Wait(activeWorkerLock);
                     }
                 }
             }
@@ -99,15 +90,18 @@ namespace FileComparer.Models
 
                         ChunkData chunkData = new ChunkData(chunk1ToProcess, chunk2ToProcess, lineNumber - chunkSize);
 
-                        lock (activeWorkerLock)
-                        {
-                            ++countOfActiveWorker;
-                        }
-
                         while (countOfActiveWorker >= Constants.MaxJobsInPool)
                         {
                             // wait before queuing new tasks
                             // we don't want to overwhelm the memory.........
+
+                            // if needs some interactions uncomment this line.
+                            //Console.WriteLine($"Lines processed {lineNumber}");
+                        }
+
+                        lock (activeWorkerLock)
+                        {
+                            ++countOfActiveWorker;
                         }
 
                         ThreadPool.QueueUserWorkItem(new WaitCallback(ProcessChunk), chunkData);
@@ -139,17 +133,18 @@ namespace FileComparer.Models
                 if (reader1.ReadLine() != null
                     && reader2.ReadLine() == null) //There are still some lines left in File1
                 {
-                    summary = new Summary(FileName.File2);
+                    summary = new Summary(FileName.File2, lineNumber);
                 }
                 else if (reader2.ReadLine() != null
                     && reader1.ReadLine() == null) // There are still lines left in File2
                 {
-                    summary = new Summary(FileName.File1);
+                    summary = new Summary(FileName.File1, lineNumber);
                 }
             }
 
             lock (activeWorkerLock)
             {
+                // This is where we complete the Compare function worker thread task.
                 countOfActiveWorker--;
                 Monitor.PulseAll(activeWorkerLock);
 
@@ -201,19 +196,12 @@ namespace FileComparer.Models
                             isFirstDiff = false;
 
                             object[] diff = {   " At:",
-                                            ConsoleColor.DarkRed,
-                                            _diff.Index,
-                                            ConsoleColor.White,
                                             " (",
-                                            ConsoleColor.Cyan,
                                             _diff.Char1.ToString(),
-                                            ConsoleColor.White,
-                                            " vs ",
-                                            ConsoleColor.White,
+                                            " | ",
                                             _diff.Char2.ToString(),
-                                            ConsoleColor.White,
                                             ")"
-
+                            
                                         };
                             diff_list.AddRange(diff);
                         }
@@ -225,7 +213,7 @@ namespace FileComparer.Models
                 }
             }
 
-            // Finally job is complete now reduce to active job count.
+            // Finally job is complete now reduce the active job count.
             lock (activeWorkerLock)
             {
                 --countOfActiveWorker;

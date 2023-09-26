@@ -12,9 +12,56 @@ namespace FileComparer
     {
         private IComparer _comparer { get; set; }
 
+        // There's no use of this object. It is required just to match the signature of the methods.
+        private object mainObject = new object();
+
         public async Task GetIndexOptions(GetDifferenceIndexOption opts)
         {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
 
+            _comparer = new ChunkedFileComparer(opts.File1InputPath, opts.File2InputPath)
+            {
+                OutPath = opts.OutPath,
+                outputKind = OutputKind.FileWriting
+            };
+
+            if (File.Exists(opts.OutPath))
+            {
+                Console.WriteLine("Output path already exits! File will be overwritten.....");
+            }
+
+            ChunkedFileComparer.printIndexes = true;
+
+            ChunkedFileComparer.countOfActiveWorker++;
+
+            ThreadPool.SetMaxThreads(Constants.MaxThreadsCount, Constants.MaxThreadsCount);
+            
+            ThreadPool.QueueUserWorkItem(new WaitCallback(_comparer.Compare), mainObject);
+
+            
+            object obj = new object();
+
+            object[] currentDiff;
+
+            Thread.CurrentThread.Priority = ThreadPriority.Lowest;
+            
+            int totalDiffCount = 0;
+            
+            while (ChunkedFileComparer.countOfActiveWorker > 0)
+            {
+                totalDiffCount++;
+                using (StreamWriter writer = new StreamWriter(opts.OutPath, false))
+                {
+                    ChunkedFileComparer.FileDifferences.TryDequeue(out currentDiff);
+                    await writer.WriteLineAsync(currentDiff.ToString());
+                }
+            }
+
+            (_comparer as ChunkedFileComparer).summary.noOfDifferences = totalDiffCount;
+
+            (_comparer as ChunkedFileComparer).summary.ToString();
+
+            watch.Stop();
         }
 
         public async Task GetLinesOption(GetDifferentLinesOption opts)
@@ -36,7 +83,11 @@ namespace FileComparer
                 printDiffs = opts.PrintTopDiffs
             };
 
-            _comparer.Compare();
+            ChunkedFileComparer.countOfActiveWorker++;
+
+            ThreadPool.SetMaxThreads(Constants.MaxThreadsCount, Constants.MaxThreadsCount);
+
+            ThreadPool.QueueUserWorkItem(new WaitCallback(_comparer.Compare), mainObject);
         }
 
         public static async Task ReportCommandArgumentErrors(IEnumerable<Error> err)

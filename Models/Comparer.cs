@@ -8,6 +8,6 @@ namespace FileComparer.Models
 {
     public interface IComparer
     {
-        void Compare();
+        void Compare(object obj);
     }
 }
