@@ -21,7 +21,7 @@ namespace FileComparer.Models
 
         public OutputKind outputKind { get; set; }
 
-        public static ConcurrentQueue<object[]> FileDifferences { get; set; } = new ConcurrentQueue<object[]>();
+        public static ConcurrentQueue<string> FileDifferences { get; set; } = new ConcurrentQueue<string>();
 
         public static ConcurrentQueue<int> LineDifferences { get; set; } = new ConcurrentQueue<int>();
 
@@ -168,7 +168,7 @@ namespace FileComparer.Models
                     }
                     else if (printIndexes == true)
                     {
-                        List<object> diff_list = new List<object>();
+                        string currentDiff = string.Empty;
                         var strDiff = Enumerable.Range(0, Math.Max(_line1.Length, _line2.Length))
                                         .Where(i => i >= _line1.Length || i >= _line2.Length || _line1[i] != _line2[i])
                                         .Select(i => new
@@ -179,30 +179,27 @@ namespace FileComparer.Models
                                         })
                                         .ToList();
 
-                        diff_list.AddRange(new object[]{ ConsoleColor.Green,
-                        $"Line number : {chunkData.LineNumber + index + 1} " });
+                        currentDiff = $"Line number : {chunkData.LineNumber + index + 1} ";
                         bool isFirstDiff = true;
                         foreach (var _diff in strDiff)
                         {
                             if (!isFirstDiff)
                             {
-                                diff_list.Add(" ,");
+                                currentDiff += " , ";
 
                             }
 
                             isFirstDiff = false;
 
-                            object[] diff = {   " At:",
-                                            " (",
-                                            _diff.Char1.ToString(),
-                                            " | ",
-                                            _diff.Char2.ToString(),
-                                            ")"
-                            
-                                        };
-                            diff_list.AddRange(diff);
+                            currentDiff += " At:" + 
+                                            " (" + 
+                                            _diff.Char1.ToString() +
+                                            " | " +
+                                            _diff.Char2.ToString()
+                                            +
+                                            ")";
                         }
-                        FileDifferences.Enqueue(diff_list.ToArray());
+                        FileDifferences.Enqueue(currentDiff);
                     }
 
 

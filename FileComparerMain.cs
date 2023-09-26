@@ -28,6 +28,7 @@ namespace FileComparer
             if (File.Exists(opts.OutPath))
             {
                 Console.WriteLine("Output path already exits! File will be overwritten.....");
+                File.Delete(opts.OutPath);
             }
 
             ChunkedFileComparer.printIndexes = true;
@@ -41,19 +42,21 @@ namespace FileComparer
             
             object obj = new object();
 
-            object[] currentDiff;
+            string currentDiff = null;
 
             Thread.CurrentThread.Priority = ThreadPriority.Lowest;
             
             int totalDiffCount = 0;
             
-            while (ChunkedFileComparer.countOfActiveWorker > 0)
+            while (ChunkedFileComparer.countOfActiveWorker > 0 || ChunkedFileComparer.FileDifferences.TryDequeue(out currentDiff))
             {
-                totalDiffCount++;
-                using (StreamWriter writer = new StreamWriter(opts.OutPath, false))
+                using (StreamWriter writer = new StreamWriter(opts.OutPath, true))
                 {
-                    ChunkedFileComparer.FileDifferences.TryDequeue(out currentDiff);
-                    await writer.WriteLineAsync(currentDiff.ToString());
+                    if (currentDiff != null)
+                    {
+                        totalDiffCount++;
+                        await writer.WriteLineAsync(currentDiff);
+                    }
                 }
             }
 
@@ -62,6 +65,7 @@ namespace FileComparer
             Console.WriteLine((_comparer as ChunkedFileComparer).summary.ToString());
 
             watch.Stop();
+            Console.WriteLine($"Total Time Taken {watch.ElapsedMilliseconds}");
         }
 
         public async Task GetLinesOption(GetDifferentLinesOption opts)
