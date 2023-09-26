@@ -142,13 +142,20 @@ namespace FileComparer
             _comparer.Compare(mainObject);
         }
 
-        public static async Task ReportCommandArgumentErrors(IEnumerable<Error> err)
+        public static Task ReportCommandArgumentErrors(IEnumerable<Error> errs)
         {
-            foreach (var error in err)
+            foreach (var error in errs)
             {
-                Console.WriteLine(err);
+                if (error.GetType() != typeof(HelpRequestedError) &&
+                    error.GetType() != typeof(HelpVerbRequestedError))
+                {
+                    Console.WriteLine(error);
+                }
             }
+
+            return Task.CompletedTask;
         }
+
 
         public async Task AppMain(string[] args)
         {
