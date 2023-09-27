@@ -29,6 +29,7 @@ namespace FileComparer.Models
         public Summary(long noOfDifferences) 
         {
             this.noOfDifferences = noOfDifferences;
+            this.fileName = FileName.NoFile;
         }
 
         public Summary(FileName fileName)
@@ -52,7 +53,7 @@ namespace FileComparer.Models
             }
 
 
-            if (fileName != null)
+            if (fileName != FileName.NoFile)
             {
                 message2 = $" till line number {this.lineNumber}\n";
                 message3 = "There are no more lines in " + this.fileName.ToString() + " beyond line " + this.lineNumber.ToString();

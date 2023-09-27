@@ -9,6 +9,7 @@ namespace FileComparer.Models
     public enum FileName
     {
         File1,
-        File2
+        File2,
+        NoFile
     }
 }

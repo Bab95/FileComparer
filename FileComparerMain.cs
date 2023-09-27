@@ -17,8 +17,6 @@ namespace FileComparer
 
         public async Task GetIndexOptions(GetDifferenceIndexOption opts)
         {
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-
             _comparer = new ChunkedFileComparer(opts.File1InputPath, opts.File2InputPath)
             {
                 OutPath = opts.OutPath,
@@ -27,9 +25,12 @@ namespace FileComparer
 
             if (File.Exists(opts.OutPath))
             {
-                Console.WriteLine("Output path already exits! File will be overwritten.....");
+                Console.WriteLine("Output path already exits! File will be overwritten.....\n Press any key to continue...");
+                Console.ReadKey();
                 File.Delete(opts.OutPath);
             }
+
+            var watch = System.Diagnostics.Stopwatch.StartNew();
 
             ChunkedFileComparer.printIndexes = true;
 
@@ -65,24 +66,25 @@ namespace FileComparer
             Console.WriteLine((_comparer as ChunkedFileComparer).summary.ToString());
 
             watch.Stop();
-            Console.WriteLine($"Total Time Taken {watch.ElapsedMilliseconds}");
+            Console.WriteLine($"Total Time Taken in Milliseconds: {watch.ElapsedMilliseconds}");
         }
 
         public async Task GetLinesOption(GetDifferentLinesOption opts)
         {
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-
             _comparer = new ChunkedFileComparer(opts.File1InputPath, opts.File2InputPath)
             {
                 outputKind = opts.OutPath == null ? OutputKind.OnConsole : OutputKind.FileWriting,
                 OutPath = opts.OutPath
             };
 
-            if (opts.OutPath != null && File.Exists(opts.OutPath))
+            if (File.Exists(opts.OutPath))
             {
-                Console.WriteLine("Output path already exits! File will be overwritten.....");
+                Console.WriteLine("Output path already exits! File will be overwritten.....\n Press any key to continue...");
+                Console.ReadKey();
                 File.Delete(opts.OutPath);
             }
+
+            var watch = System.Diagnostics.Stopwatch.StartNew();
 
             ChunkedFileComparer.printIndexes = false;
 
@@ -128,7 +130,7 @@ namespace FileComparer
             (_comparer as ChunkedFileComparer).summary.noOfDifferences = totalDiffCount;
             Console.WriteLine((_comparer as ChunkedFileComparer).summary.ToString());
             watch.Stop();
-            Console.WriteLine($"Total Time Taken: {watch.ElapsedMilliseconds}");
+            Console.WriteLine($"Total Time Taken in Milliseconds: {watch.ElapsedMilliseconds}");
         }
 
         public async Task GetFilesParityOption(GetFileParityOption opts)
