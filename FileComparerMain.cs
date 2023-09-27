@@ -23,12 +23,7 @@ namespace FileComparer
                 outputKind = OutputKind.FileWriting
             };
 
-            if (File.Exists(opts.OutPath))
-            {
-                Console.WriteLine("Output path already exits! File will be overwritten.....\n Press any key to continue...");
-                Console.ReadKey();
-                File.Delete(opts.OutPath);
-            }
+            opts.OutPath = Utils.CheckOuputFileStatus(opts.OutPath);
 
             var watch = System.Diagnostics.Stopwatch.StartNew();
 
@@ -77,12 +72,7 @@ namespace FileComparer
                 OutPath = opts.OutPath
             };
 
-            if (File.Exists(opts.OutPath))
-            {
-                Console.WriteLine("Output path already exits! File will be overwritten.....\n Press any key to continue...");
-                Console.ReadKey();
-                File.Delete(opts.OutPath);
-            }
+            opts.OutPath = Utils.CheckOuputFileStatus(opts.OutPath);
 
             var watch = System.Diagnostics.Stopwatch.StartNew();
 
@@ -97,17 +87,12 @@ namespace FileComparer
 
             object obj = new object();
 
-            //object[] currentDiff;
-
-            //Thread.CurrentThread.Priority = ThreadPriority.Lowest;
-
             int totalDiffCount = 0;
             int currentLine = 0;
             while (ChunkedFileComparer.countOfActiveWorker > 0 || ChunkedFileComparer.LineDifferences.TryDequeue(out currentLine))
             {
                 if (opts.OutPath == null)
                 {
-                    
                     if (currentLine != 0)
                     {
                         totalDiffCount++;
