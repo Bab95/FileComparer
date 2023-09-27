@@ -126,7 +126,6 @@ namespace FileComparer
                     }
                 }
             }
-
             (_comparer as ChunkedFileComparer).summary.noOfDifferences = totalDiffCount;
             Console.WriteLine((_comparer as ChunkedFileComparer).summary.ToString());
             watch.Stop();
@@ -176,6 +175,7 @@ namespace FileComparer
             catch (Exception e)
             {
                 Console.WriteLine("Some unknown exception occurred " + e.Message);
+                Console.WriteLine(e.StackTrace);
             }
         }
     }

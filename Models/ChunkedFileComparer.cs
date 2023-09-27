@@ -141,6 +141,11 @@ namespace FileComparer.Models
                 {
                     summary = new Summary(FileName.File1, lineNumber);
                 }
+                else
+                {
+                    // There are equal lines and we still haven't counted diffs. So initialize with NoFile.
+                    summary = new Summary(FileName.NoFile);
+                }
             }
 
             lock (activeWorkerLock)
