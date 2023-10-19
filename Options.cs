@@ -37,6 +37,9 @@ public class GetDifferentLinesOption : Options
 [Verb("GetFilesParity", HelpText ="Tells if two files are same or not and prints number of differences.")]
 public class GetFileParityOption : Options
 {
-    [Option('d', "PrintDiff", HelpText="Prints 5 different lines. (This is just to analyze pattern in differences)", Required = false, Default = false)]
+    [Option('d', "PrintDiff", HelpText="Prints different lines. (This is just to analyze pattern in differences). By default prints 5 different lines.", Required = false, Default = false)]
     public bool PrintTopDiffs { get; set; }
+
+    [Option('n', "PrintNoOfDiff", HelpText ="Prints no of different lines.")]
+    public int PrintNoOfDiffs { get; set; }
 }
