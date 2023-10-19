@@ -11,13 +11,59 @@ namespace FileComparer
     public class FileComparerMain
     {
         private IComparer _comparer { get; set; }
+        private SortingContext _sortingContext { get; set; } = new SortingContext(Constants.ChunkSize);
 
         // There's no use of this object. It is required just to match the signature of the methods.
         private object mainObject = new object();
 
+        private bool IsSortingRequired(Options opts)
+        {
+            if (opts.sort != null && opts.sort == true)
+            {
+                return true;
+            }
+
+            return false;
+        }
+        private string GetOutPath(string inputPath)
+        {
+            string baseTempDirectory = AppDomain.CurrentDomain.BaseDirectory + "temp_sorted";
+            if (!Directory.Exists(baseTempDirectory)) 
+            {
+                Directory.CreateDirectory(baseTempDirectory);
+            }
+            string fileName = Path.GetFileName(inputPath);
+            return Path.Combine(baseTempDirectory, fileName);
+        }
+
         public async Task GetIndexOptions(GetDifferenceIndexOption opts)
         {
-            _comparer = new ChunkedFileComparer(opts.File1InputPath, opts.File2InputPath)
+            string file1InputPath = opts.File1InputPath;
+            string file2InputPath = opts.File2InputPath;
+
+
+            if (IsSortingRequired(opts) ) 
+            {
+                var _sorting_watch = System.Diagnostics.Stopwatch.StartNew();
+                Console.WriteLine("Starting Sorting File1..........");
+                string file1outPath = GetOutPath(file1InputPath);
+                _sortingContext.SortLargeFileParallel(file1InputPath, file1outPath, Constants.ChunkSize);
+                _sorting_watch.Stop();
+                Console.WriteLine($"Total Time taken in sorting file 1 :{_sorting_watch.ElapsedMilliseconds} milliseconds");
+                _sorting_watch.Reset();
+
+                _sorting_watch.Start();
+                Console.WriteLine("Starting Sorting File2..........");
+                string file2outPath = GetOutPath(file2InputPath);
+                _sortingContext.SortLargeFileParallel(file2InputPath, file2outPath, Constants.ChunkSize);
+                _sorting_watch.Stop();
+                Console.WriteLine($"Total Time taken in sorting file 2 :{_sorting_watch.ElapsedMilliseconds} milliseconds");
+
+                file1InputPath = file1outPath;
+                file2InputPath= file2outPath;
+            }
+
+            _comparer = new ChunkedFileComparer(file1InputPath, file2InputPath)
             {
                 OutPath = opts.OutPath,
                 outputKind = OutputKind.FileWriting
@@ -66,10 +112,35 @@ namespace FileComparer
 
         public async Task GetLinesOption(GetDifferentLinesOption opts)
         {
-            _comparer = new ChunkedFileComparer(opts.File1InputPath, opts.File2InputPath)
+            string file1InputPath = opts.File1InputPath;
+            string file2InputPath = opts.File2InputPath;
+
+
+            if (IsSortingRequired(opts))
             {
-                outputKind = opts.OutPath == null ? OutputKind.OnConsole : OutputKind.FileWriting,
-                OutPath = opts.OutPath
+                var _sorting_watch = System.Diagnostics.Stopwatch.StartNew();
+                Console.WriteLine("Starting Sorting File1..........");
+                string file1outPath = GetOutPath(file1InputPath);
+                _sortingContext.SortLargeFileParallel(file1InputPath, file1outPath, Constants.ChunkSize);
+                _sorting_watch.Stop();
+                Console.WriteLine($"Total Time taken in sorting file 1 :{_sorting_watch.ElapsedMilliseconds} milliseconds");
+                _sorting_watch.Reset();
+
+                _sorting_watch.Start();
+                Console.WriteLine("Starting Sorting File2..........");
+                string file2outPath = GetOutPath(file2InputPath);
+                _sortingContext.SortLargeFileParallel(file2InputPath, file2outPath, Constants.ChunkSize);
+                _sorting_watch.Stop();
+                Console.WriteLine($"Total Time taken in sorting file 2 :{_sorting_watch.ElapsedMilliseconds} milliseconds");
+
+                file1InputPath = file1outPath;
+                file2InputPath = file2outPath;
+            }
+
+            _comparer = new ChunkedFileComparer(file1InputPath, file2InputPath)
+            {
+                OutPath = opts.OutPath,
+                outputKind = OutputKind.FileWriting
             };
 
             opts.OutPath = Utils.CheckOuputFileStatus(opts.OutPath);
@@ -119,7 +190,32 @@ namespace FileComparer
 
         public async Task GetFilesParityOption(GetFileParityOption opts)
         {
-            _comparer = new SequentialFileComparer(opts.File1InputPath, opts.File2InputPath)
+            string file1InputPath = opts.File1InputPath;
+            string file2InputPath = opts.File2InputPath;
+
+
+            if (IsSortingRequired(opts))
+            {
+                var _sorting_watch = System.Diagnostics.Stopwatch.StartNew();
+                Console.WriteLine("Starting Sorting File1..........");
+                string file1outPath = GetOutPath(file1InputPath);
+                _sortingContext.SortLargeFileParallel(file1InputPath, file1outPath, Constants.ChunkSize);
+                _sorting_watch.Stop();
+                Console.WriteLine($"Total Time taken in sorting file 1 :{_sorting_watch.ElapsedMilliseconds} milliseconds");
+                _sorting_watch.Reset();
+
+                _sorting_watch.Start();
+                Console.WriteLine("Starting Sorting File2..........");
+                string file2outPath = GetOutPath(file2InputPath);
+                _sortingContext.SortLargeFileParallel(file2InputPath, file2outPath, Constants.ChunkSize);
+                _sorting_watch.Stop();
+                Console.WriteLine($"Total Time taken in sorting file 2 :{_sorting_watch.ElapsedMilliseconds} milliseconds");
+
+                file1InputPath = file1outPath;
+                file2InputPath = file2outPath;
+            }
+
+            _comparer = new SequentialFileComparer(file1InputPath, file2InputPath)
             {
                 printDiffs = opts.PrintTopDiffs
             };

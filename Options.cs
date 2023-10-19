@@ -8,6 +8,9 @@ public class Options
     [Option('j', "file2", Required = true, HelpText = "File2 file path.")]
     public string File2InputPath { get; set; }
 
+    [Option('s', "sort", Required = false, HelpText = "Sort files before comparison")]
+    public bool sort { get; set; }
+
     public string OperationName => this.GetType().Name.Substring(0, this.GetType().Name.IndexOf("Options"));
 
     public string OperationDescription => ((VerbAttribute)Attribute.GetCustomAttribute(this.GetType(), typeof(VerbAttribute))).HelpText;
