@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,5 +23,7 @@ namespace FileComparer
         /// Max no of threads allowed to run from ThreadPool.
         /// </summary>
         public static readonly int MaxThreadsCount = 64;
+
+        public static readonly int mergedChunksLineNumber = 10;
     }
 }
