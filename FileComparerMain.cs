@@ -1,4 +1,4 @@
-﻿using CommandLine;
+using CommandLine;
 using FileComparer.Models;
 using System;
 using System.Collections.Generic;
@@ -11,7 +11,7 @@ namespace FileComparer
     public class FileComparerMain
     {
         private IComparer _comparer { get; set; }
-        private SortingContext _sortingContext { get; set; } = new SortingContext(Constants.ChunkSize);
+        private SortingContext _sortingContext { get; set; } // = new SortingContext(Constants.ChunkSize);
 
         // There's no use of this object. It is required just to match the signature of the methods.
         private object mainObject = new object();
@@ -184,21 +184,21 @@ namespace FileComparer
 
             if (IsSortingRequired(opts))
             {
-                string file1outPath = SortFile(file1InputPath, 1);
-                file1InputPath = file1outPath;
-
-                string file2outPath = SortFile(file2InputPath, 2);
-                file2InputPath = file2outPath;
+                _sortingContext = new SortingContext(Constants.ChunkSize, _comparer, Constants.mergedChunksLineNumber);
+                _sortingContext.CompareSorted(file1InputPath, file2InputPath);
             }
-
-            _comparer = new SequentialFileComparer(file1InputPath, file2InputPath)
+            else
             {
-                printDiffs = opts.PrintTopDiffs,
-                printNoOfDiffs = opts.PrintNoOfDiffs
-            };
 
-            ChunkedFileComparer.countOfActiveWorker++;
-            _comparer.Compare(mainObject);
+                _comparer = new SequentialFileComparer(file1InputPath, file2InputPath)
+                {
+                    printDiffs = opts.PrintTopDiffs,
+                    printNoOfDiffs = opts.PrintNoOfDiffs
+                };
+
+                ChunkedFileComparer.countOfActiveWorker++;
+                _comparer.Compare(mainObject);
+            }
         }
 
         public static Task ReportCommandArgumentErrors(IEnumerable<Error> errs)
