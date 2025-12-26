@@ -62,6 +62,7 @@ namespace FileComparer
                 string file2outPath = SortFile(file2InputPath, 2);
                 file2InputPath = file2outPath;
             }
+	    var watch = System.Diagnostics.Stopwatcg.StartNew();
 
             _comparer = new ChunkedFileComparer(file1InputPath, file2InputPath)
             {
@@ -69,9 +70,12 @@ namespace FileComparer
                 outputKind = OutputKind.FileWriting
             };
 
-            opts.OutPath = Utils.CheckOuputFileStatus(opts.OutPath);
+	   if(File.Exists(opts.OutPath))
+	   {
+		Console.WriteLine("Output path already exists! File will be overwritten........");
+		File.Delete(opts.OutPath);
+	   }
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
 
             ChunkedFileComparer.printIndexes = true;
 
@@ -124,16 +128,21 @@ namespace FileComparer
                 string file2outPath = SortFile(file2InputPath, 2);
                 file2InputPath = file2outPath;
             }
-
+	
+	     var watch = System.Diagnostics.Stopwatch.StartNew();
             _comparer = new ChunkedFileComparer(file1InputPath, file2InputPath)
             {
                 OutPath = opts.OutPath,
                 outputKind = OutputKind.FileWriting
             };
 
-            opts.OutPath = Utils.CheckOuputFileStatus(opts.OutPath);
 
-            var watch = System.Diagnostics.Stopwatch.StartNew();
+	   if(opts.OutPath!=null && File.Exists(opts.OutPath))
+	   {
+		Console.WriteLine("Output path already exists! File will be overwritten.....");
+		File.Delete(opts.OutPath);
+		
+	   }
 
             ChunkedFileComparer.printIndexes = false;
 
@@ -155,7 +164,7 @@ namespace FileComparer
                     if (currentLine != 0)
                     {
                         totalDiffCount++;
-                        Console.WriteLine(currentLine);
+                        Console.WriteLine(currentLine+ " ");
                     }
                 }
                 else
@@ -165,11 +174,15 @@ namespace FileComparer
                         if (currentLine != 0)
                         {
                             totalDiffCount++;
-                            await writer.WriteLineAsync(currentLine.ToString());
+                            await writer.WriteLineAsync(currentLine.ToString()+" ");
                         }
                     }
                 }
             }
+	    if(opts.OutPath == nnull)
+	    {
+		Console.Write("\n");
+	    }
             (_comparer as ChunkedFileComparer).summary.noOfDifferences = totalDiffCount;
             Console.WriteLine((_comparer as ChunkedFileComparer).summary.ToString());
             watch.Stop();
@@ -184,11 +197,12 @@ namespace FileComparer
 
             if (IsSortingRequired(opts))
             {
-                _sortingContext = new SortingContext(Constants.ChunkSize, _comparer, Constants.mergedChunksLineNumber);
-                _sortingContext.CompareSorted(file1InputPath, file2InputPath);
+                string file1outPath = SortFile(file1InputPath,1);
+		file1InputPath = fiile1outPath;
+		string file2outPath = SortFile(file2InputPath,2);
+		file2InputPath = file2outPath;
             }
-            else
-            {
+          
 
                 _comparer = new SequentialFileComparer(file1InputPath, file2InputPath)
                 {
@@ -198,7 +212,6 @@ namespace FileComparer
 
                 ChunkedFileComparer.countOfActiveWorker++;
                 _comparer.Compare(mainObject);
-            }
         }
 
         public static Task ReportCommandArgumentErrors(IEnumerable<Error> errs)

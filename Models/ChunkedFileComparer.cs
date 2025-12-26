@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -186,10 +186,10 @@ namespace FileComparer.Models
 
                         currentDiff = $"Line number : {chunkData.LineNumber + index + 1} ";
                         bool isFirstDiff = true;
-                        int diff_index = 0;
+                        
                         foreach (var _diff in strDiff)
                         {
-                            diff_index++;
+                            
                             if (!isFirstDiff)
                             {
                                 currentDiff += " , ";
@@ -198,13 +198,7 @@ namespace FileComparer.Models
 
                             isFirstDiff = false;
 
-                            currentDiff += $" At:{diff_index}" + 
-                                            " (" + 
-                                            _diff.Char1.ToString() +
-                                            " | " +
-                                            _diff.Char2.ToString()
-                                            +
-                                            ")";
+                            currentDiff += _diff.Index;
                         }
                         FileDifferences.Enqueue(currentDiff);
                     }

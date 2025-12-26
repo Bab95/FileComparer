@@ -1,4 +1,4 @@
-﻿using CommandLine;
+using CommandLine;
 
 public class Options
 {
@@ -17,29 +17,29 @@ public class Options
 }
 
 
-[Verb("GetDifferenceIndexes", HelpText = "Prints difference indexes along with line number. This operation is slow and may consume more space.")]
+[Verb("GetDifferenceIndexes", HelpText = "Prints differences at index along with line number. This operation is slow and may consume more space.")]
 public class GetDifferenceIndexOption : Options
 {
     [Option('o', "outpath", Required = true, HelpText = "Result Outpath")]
     public string OutPath { get; set; }
 }
 
-[Verb("GetDifferentLines", HelpText = "Prints the different lines either on console or output path.")]
+[Verb("GetDifferentLines", HelpText = "Prints the differences at record level either on console or output path.")]
 public class GetDifferentLinesOption : Options
 {
     [Option('o', "outpath", Required = false, HelpText = "Result Outpath")]
     public string OutPath { get; set; }
 
-    [Option('p', "PrintLines", HelpText = "Print Difference Lines", Required = false)]
-    public bool printLines { get; set; } = false;
+    //[Option('p', "PrintLines", HelpText = "Print Difference Lines", Required = false)]
+    //public bool printLines { get; set; } = false;
 }
 
-[Verb("GetFilesParity", HelpText ="Tells if two files are same or not and prints number of differences.")]
+[Verb("GetFilesParity", HelpText ="Tells if two files are identical or not and prints number of differences at record level.")]
 public class GetFileParityOption : Options
 {
     [Option('d', "PrintDiff", HelpText="Prints different lines. (This is just to analyze pattern in differences). By default prints 5 different lines.", Required = false, Default = false)]
     public bool PrintTopDiffs { get; set; }
 
-    [Option('n', "PrintNoOfDiff", HelpText ="Prints no of different lines.")]
+    [Option('n', "PrintNoOfDiff", HelpText ="Prints n no of records having differences.")]
     public int PrintNoOfDiffs { get; set; }
 }

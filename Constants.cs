@@ -11,7 +11,8 @@ namespace FileComparer
         /// <summary>
         /// Chunk size for breaking file for multithreaded processing.
         /// </summary>
-        public static readonly int ChunkSize = 10;
+        public static readonly int ChunkSize = 20000;
+	public static readonly int SortChunkSize=100000;
 
         /// <summary>
         /// Max no of jobs allowed in threadpool.
@@ -24,6 +25,6 @@ namespace FileComparer
         /// </summary>
         public static readonly int MaxThreadsCount = 64;
 
-        public static readonly int mergedChunksLineNumber = 10;
+        ///public static readonly int mergedChunksLineNumber = 10;
     }
 }
