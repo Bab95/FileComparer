@@ -1,16 +1,12 @@
 using CommandLine;
 using FileComparer.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FileComparer
 {
     public class FileComparerMain
     {
         private IComparer _comparer { get; set; }
+
         private SortingContext _sortingContext { get; set; } // = new SortingContext(Constants.ChunkSize);
 
         // There's no use of this object. It is required just to match the signature of the methods.
@@ -62,23 +58,21 @@ namespace FileComparer
                 string file2outPath = SortFile(file2InputPath, 2);
                 file2InputPath = file2outPath;
             }
-	    var watch = System.Diagnostics.Stopwatcg.StartNew();
-
+	        
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             _comparer = new ChunkedFileComparer(file1InputPath, file2InputPath)
             {
                 OutPath = opts.OutPath,
                 outputKind = OutputKind.FileWriting
             };
 
-	   if(File.Exists(opts.OutPath))
-	   {
-		Console.WriteLine("Output path already exists! File will be overwritten........");
-		File.Delete(opts.OutPath);
-	   }
-
-
+	        if(File.Exists(opts.OutPath))
+	        {
+		        Console.WriteLine("Output path already exists! File will be overwritten........");
+		        File.Delete(opts.OutPath);
+	        }
+            
             ChunkedFileComparer.printIndexes = true;
-
             ChunkedFileComparer.countOfActiveWorker++;
 
             ThreadPool.SetMaxThreads(Constants.MaxThreadsCount, Constants.MaxThreadsCount);
@@ -179,7 +173,7 @@ namespace FileComparer
                     }
                 }
             }
-	    if(opts.OutPath == nnull)
+	    if(opts.OutPath == null)
 	    {
 		Console.Write("\n");
 	    }
@@ -198,7 +192,7 @@ namespace FileComparer
             if (IsSortingRequired(opts))
             {
                 string file1outPath = SortFile(file1InputPath,1);
-		file1InputPath = fiile1outPath;
+		file1InputPath = file1outPath;
 		string file2outPath = SortFile(file2InputPath,2);
 		file2InputPath = file2outPath;
             }
@@ -234,14 +228,16 @@ namespace FileComparer
             try
             {
                 await Parser.Default.ParseArguments<
-                    GetDifferenceIndexOption,
-                    GetDifferentLinesOption,
-                    GetFileParityOption>(args)
-                  .MapResult(
-                    (GetDifferenceIndexOption opts) => GetIndexOptions(opts),
-                    (GetDifferentLinesOption opts) => GetLinesOption(opts),
-                    (GetFileParityOption opts) => GetFilesParityOption(opts),
-                    errs => ReportCommandArgumentErrors(errs));
+                        CompareDataFileOptions,
+                        CompareCsvOptions,
+                        CompareExcelOptions,
+                        ComparePdfOptions
+                        >(args).MapResult(
+                            (CompareDataFileOptions opts) => RunDataFileCompare(opts),
+                            (CompareCsvOptions opts) => RunCsvCompare(opts),
+                            (CompareExcelOptions opts) => RunExcelCompare(opts),
+                            (ComparePdfOptions opts) => RunPdfCompare(opts),
+                        errs => ReportCommandArgumentErrors(errs));
             }
             catch (Exception e)
             {

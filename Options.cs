@@ -1,45 +1,85 @@
 using CommandLine;
 
-public class Options
+public abstract class CompareOptionsBase
 {
-    [Option('i', "file1", Required = true, HelpText = "File1 file path.")]
+    [Option('i', "file1", Required = true, HelpText = "File1 path")]
     public string File1InputPath { get; set; }
 
-    [Option('j', "file2", Required = true, HelpText = "File2 file path.")]
+    [Option('j', "file2", Required = true, HelpText = "File2 path")]
     public string File2InputPath { get; set; }
 
-    [Option('s', "sort", Required = false, HelpText = "Sort files before comparison")]
-    public bool sort { get; set; }
-
-    public string OperationName => this.GetType().Name.Substring(0, this.GetType().Name.IndexOf("Options"));
-
-    public string OperationDescription => ((VerbAttribute)Attribute.GetCustomAttribute(this.GetType(), typeof(VerbAttribute))).HelpText;
-}
-
-
-[Verb("GetDifferenceIndexes", HelpText = "Prints differences at index along with line number. This operation is slow and may consume more space.")]
-public class GetDifferenceIndexOption : Options
-{
-    [Option('o', "outpath", Required = true, HelpText = "Result Outpath")]
-    public string OutPath { get; set; }
-}
-
-[Verb("GetDifferentLines", HelpText = "Prints the differences at record level either on console or output path.")]
-public class GetDifferentLinesOption : Options
-{
-    [Option('o', "outpath", Required = false, HelpText = "Result Outpath")]
+    [Option('o', "outpath", Required = false, HelpText = "Output path")]
     public string OutPath { get; set; }
 
-    //[Option('p', "PrintLines", HelpText = "Print Difference Lines", Required = false)]
-    //public bool printLines { get; set; } = false;
+    [Option('n', "PrintNoOfDiff", Required = false, HelpText = "Number of differences to print")]
+    public int PrintNoOfDiffs { get; set; } = 5;
+
+    public string OperationName =>
+        this.GetType().Name.Replace("Options", "");
+
+    public string OperationDescription =>
+        ((VerbAttribute)Attribute.GetCustomAttribute(
+            this.GetType(),
+            typeof(VerbAttribute)))?.HelpText;
 }
 
-[Verb("GetFilesParity", HelpText ="Tells if two files are identical or not and prints number of differences at record level.")]
-public class GetFileParityOption : Options
+public abstract class DataCompareOptionsBase : CompareOptionsBase
 {
-    [Option('d', "PrintDiff", HelpText="Prints different lines. (This is just to analyze pattern in differences). By default prints 5 different lines.", Required = false, Default = false)]
-    public bool PrintTopDiffs { get; set; }
+    [Option('s', "sort", Required = false, HelpText = "Sort before compare")]
+    public bool Sort { get; set; }
 
-    [Option('n', "PrintNoOfDiff", HelpText ="Prints n no of records having differences.")]
-    public int PrintNoOfDiffs { get; set; }
+    [Option("normalize", Required = false, HelpText = "Normalize before compare")]
+    public bool Normalize { get; set; }
+}
+
+public abstract class CsvCompareOptionsBase : DataCompareOptionsBase
+{
+    [Option("delimiter", Required = false, Default = ",",
+        HelpText = "CSV delimiter")]
+    public char Delimiter { get; set; }
+
+    [Option("ignoreHeader", Required = false,
+        HelpText = "Ignore header row")]
+    public bool IgnoreHeader { get; set; }
+}
+
+public abstract class ExcelCompareOptionsBase : DataCompareOptionsBase
+{
+    [Option("sheet", Required = false,
+        HelpText = "Sheet name")]
+    public string SheetName { get; set; }
+
+    [Option("sheetIndex", Required = false,
+        HelpText = "Sheet index")]
+    public int SheetIndex { get; set; }
+}
+
+public abstract class PdfCompareOptionsBase : CompareOptionsBase
+{
+    [Option("mode", Required = false, Default = "text",
+        HelpText = "Comparison mode: text|visual|metadata")]
+    public string Mode { get; set; }
+
+    [Option("ignoreWhitespace", Required = false)]
+    public bool IgnoreWhitespace { get; set; }
+}
+
+[Verb("CompareData", HelpText = "Compare text files")]
+public class CompareDataFileOptions : DataCompareOptionsBase
+{
+}
+
+[Verb("CompareCsv", HelpText = "Compare CSV files")]
+public class CompareCsvOptions : CsvCompareOptionsBase
+{
+}
+
+[Verb("CompareExcel", HelpText = "Compare Excel files")]
+public class CompareExcelOptions : ExcelCompareOptionsBase
+{
+}
+
+[Verb("ComparePdf", HelpText = "Compare PDF files")]
+public class ComparePdfOptions : PdfCompareOptionsBase
+{
 }

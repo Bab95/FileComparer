@@ -10,7 +10,6 @@ namespace FileComparer.Models
 {
     public class SortingContext
     {
-     
         private int ChunkSize { get; set; }
 
         public SortingContext(int chunkSize)
@@ -84,6 +83,7 @@ namespace FileComparer.Models
             chunk.Sort();
             await File.WriteAllLinesAsync(tempFilePath, chunk);
         }
+
         private void MergeSortedChunks(List<string> chunkFiles, string outputFilePath)
         {
             using (var outputWriter = new StreamWriter(outputFilePath))
