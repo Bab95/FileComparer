@@ -22,6 +22,7 @@ namespace FileComparer.Models
             {
                 return 1;
             }
+
             return string.Compare(this.currenLine, other.currenLine);
         }
     }

@@ -1,212 +1,21 @@
 using CommandLine;
-using FileComparer.Models;
+using FileComparer.Models.Comparer;
+using FileComparer.Models.Sorting;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace FileComparer
 {
     public class FileComparerMain
     {
-        private IComparer _comparer { get; set; }
+        private IComparer comparer { get; set; }
 
-        private SortingContext _sortingContext { get; set; } // = new SortingContext(Constants.ChunkSize);
+        private SortingContext sortingContext { get; set; } // = new SortingContext(Constants.ChunkSize);
 
         // There's no use of this object. It is required just to match the signature of the methods.
         private object mainObject = new object();
-
-        private bool IsSortingRequired(Options opts)
-        {
-            if (opts.sort != null && opts.sort == true)
-            {
-                return true;
-            }
-
-            return false;
-        }
-        private string GetSortedFileOutPath(string inputPath)
-        {
-            string baseTempDirectory = AppDomain.CurrentDomain.BaseDirectory + "temp_sorted";
-            if (!Directory.Exists(baseTempDirectory)) 
-            {
-                Directory.CreateDirectory(baseTempDirectory);
-            }
-            string fileName = Path.GetFileName(inputPath);
-            return Path.Combine(baseTempDirectory, fileName);
-        }
-
-        private string SortFile(string fileInputPath, int fileNumber)
-        {
-            var _sorting_watch = System.Diagnostics.Stopwatch.StartNew();
-            Console.WriteLine($"Starting Sorting File{fileNumber}..........");
-            string fileOutPath = GetSortedFileOutPath(fileInputPath);
-            _sortingContext.SortLargeFileParallel(fileInputPath, fileOutPath, Constants.ChunkSize);
-            _sorting_watch.Stop();
-            Console.WriteLine($"Total Time taken in sorting file {fileNumber} : {_sorting_watch.ElapsedMilliseconds} milliseconds\n");
-            _sorting_watch.Reset();
-            return fileOutPath;
-        }
-
-        public async Task GetIndexOptions(GetDifferenceIndexOption opts)
-        {
-            string file1InputPath = opts.File1InputPath;
-            string file2InputPath = opts.File2InputPath;
-
-
-            if (IsSortingRequired(opts))
-            {
-                string file1outPath = SortFile(file1InputPath, 1);
-                file1InputPath = file1outPath;
-
-                string file2outPath = SortFile(file2InputPath, 2);
-                file2InputPath = file2outPath;
-            }
-	        
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            _comparer = new ChunkedFileComparer(file1InputPath, file2InputPath)
-            {
-                OutPath = opts.OutPath,
-                outputKind = OutputKind.FileWriting
-            };
-
-	        if(File.Exists(opts.OutPath))
-	        {
-		        Console.WriteLine("Output path already exists! File will be overwritten........");
-		        File.Delete(opts.OutPath);
-	        }
-            
-            ChunkedFileComparer.printIndexes = true;
-            ChunkedFileComparer.countOfActiveWorker++;
-
-            ThreadPool.SetMaxThreads(Constants.MaxThreadsCount, Constants.MaxThreadsCount);
-            
-            ThreadPool.QueueUserWorkItem(new WaitCallback(_comparer.Compare), mainObject);
-
-            
-            object obj = new object();
-
-            string currentDiff = null;
-
-            Thread.CurrentThread.Priority = ThreadPriority.Lowest;
-            
-            int totalDiffCount = 0;
-            
-            while (ChunkedFileComparer.countOfActiveWorker > 0 || ChunkedFileComparer.FileDifferences.TryDequeue(out currentDiff))
-            {
-                using (StreamWriter writer = new StreamWriter(opts.OutPath, true))
-                {
-                    if (currentDiff != null)
-                    {
-                        totalDiffCount++;
-                        await writer.WriteLineAsync(currentDiff);
-                    }
-                }
-            }
-
-            (_comparer as ChunkedFileComparer).summary.noOfDifferences = totalDiffCount;
-
-            Console.WriteLine((_comparer as ChunkedFileComparer).summary.ToString());
-
-            watch.Stop();
-            Console.WriteLine($"Total Time Taken in Milliseconds: {watch.ElapsedMilliseconds}");
-        }
-
-        public async Task GetLinesOption(GetDifferentLinesOption opts)
-        {
-            string file1InputPath = opts.File1InputPath;
-            string file2InputPath = opts.File2InputPath;
-
-
-            if (IsSortingRequired(opts))
-            {
-                string file1outPath = SortFile(file1InputPath, 1);
-                file1InputPath = file1outPath;
-
-                string file2outPath = SortFile(file2InputPath, 2);
-                file2InputPath = file2outPath;
-            }
-	
-	     var watch = System.Diagnostics.Stopwatch.StartNew();
-            _comparer = new ChunkedFileComparer(file1InputPath, file2InputPath)
-            {
-                OutPath = opts.OutPath,
-                outputKind = OutputKind.FileWriting
-            };
-
-
-	   if(opts.OutPath!=null && File.Exists(opts.OutPath))
-	   {
-		Console.WriteLine("Output path already exists! File will be overwritten.....");
-		File.Delete(opts.OutPath);
-		
-	   }
-
-            ChunkedFileComparer.printIndexes = false;
-
-            ChunkedFileComparer.countOfActiveWorker++;
-
-            ThreadPool.SetMaxThreads(Constants.MaxThreadsCount, Constants.MaxThreadsCount);
-
-            ThreadPool.QueueUserWorkItem(new WaitCallback(_comparer.Compare), mainObject);
-
-
-            object obj = new object();
-
-            int totalDiffCount = 0;
-            int currentLine = 0;
-            while (ChunkedFileComparer.countOfActiveWorker > 0 || ChunkedFileComparer.LineDifferences.TryDequeue(out currentLine))
-            {
-                if (opts.OutPath == null)
-                {
-                    if (currentLine != 0)
-                    {
-                        totalDiffCount++;
-                        Console.WriteLine(currentLine+ " ");
-                    }
-                }
-                else
-                {
-                    using (StreamWriter writer = new StreamWriter(opts.OutPath, true))
-                    {
-                        if (currentLine != 0)
-                        {
-                            totalDiffCount++;
-                            await writer.WriteLineAsync(currentLine.ToString()+" ");
-                        }
-                    }
-                }
-            }
-	    if(opts.OutPath == null)
-	    {
-		Console.Write("\n");
-	    }
-            (_comparer as ChunkedFileComparer).summary.noOfDifferences = totalDiffCount;
-            Console.WriteLine((_comparer as ChunkedFileComparer).summary.ToString());
-            watch.Stop();
-            Console.WriteLine($"Total Time Taken in Milliseconds: {watch.ElapsedMilliseconds}");
-        }
-
-        public async Task GetFilesParityOption(GetFileParityOption opts)
-        {
-            string file1InputPath = opts.File1InputPath;
-            string file2InputPath = opts.File2InputPath;
-
-
-            if (IsSortingRequired(opts))
-            {
-                string file1outPath = SortFile(file1InputPath,1);
-		file1InputPath = file1outPath;
-		string file2outPath = SortFile(file2InputPath,2);
-		file2InputPath = file2outPath;
-            }
-          
-
-                _comparer = new SequentialFileComparer(file1InputPath, file2InputPath)
-                {
-                    printDiffs = opts.PrintTopDiffs,
-                    printNoOfDiffs = opts.PrintNoOfDiffs
-                };
-
-                ChunkedFileComparer.countOfActiveWorker++;
-                _comparer.Compare(mainObject);
-        }
 
         public static Task ReportCommandArgumentErrors(IEnumerable<Error> errs)
         {
@@ -222,6 +31,181 @@ namespace FileComparer
             return Task.CompletedTask;
         }
 
+        public async Task RunDataFileCompare(CompareDataFileOptions opts)
+        {
+            List<string> tempFiles = new List<string>();
+            string file1Path = opts.File1InputPath;
+            string file2Path = opts.File2InputPath;
+
+            try
+            {
+                if (opts.Normalize)
+                {
+                    file1Path = NormalizeFile(file1Path, tempFiles);
+                    file2Path = NormalizeFile(file2Path, tempFiles);
+                }
+
+                if (opts.Sort)
+                {
+                    sortingContext = new SortingContext(new DataFileSortingStrategy(Constants.SortChunkSize));
+                    string sortedFile1 = Path.GetTempFileName();
+                    string sortedFile2 = Path.GetTempFileName();
+                    tempFiles.Add(sortedFile1);
+                    tempFiles.Add(sortedFile2);
+                    sortingContext.Sort(file1Path, sortedFile1);
+                    sortingContext.Sort(file2Path, sortedFile2);
+                    file1Path = sortedFile1;
+                    file2Path = sortedFile2;
+                }
+
+                comparer = new ChunkedFileComparer(file1Path, file2Path);
+                comparer.Compare(mainObject);
+            }
+            finally
+            {
+                CleanupTempFiles(tempFiles);
+            }
+
+            await Task.CompletedTask;
+        }
+
+        public async Task RunCsvCompare(CompareCsvOptions opts)
+        {
+            List<string> tempFiles = new List<string>();
+            string file1Path = opts.File1InputPath;
+            string file2Path = opts.File2InputPath;
+            string header1 = null;
+            string header2 = null;
+
+            try
+            {
+                if (opts.Sort)
+                {
+                    if (opts.IgnoreHeader)
+                    {
+                        file1Path = StripCsvHeader(file1Path, out header1, tempFiles);
+                        file2Path = StripCsvHeader(file2Path, out header2, tempFiles);
+                    }
+
+                    sortingContext = new SortingContext(new CsvFileSortingStrategy(Constants.SortChunkSize, opts.Delimiter, opts.SortColumn, opts.Normalize));
+                    string sortedFile1 = Path.GetTempFileName();
+                    string sortedFile2 = Path.GetTempFileName();
+                    tempFiles.Add(sortedFile1);
+                    tempFiles.Add(sortedFile2);
+                    sortingContext.Sort(file1Path, sortedFile1);
+                    sortingContext.Sort(file2Path, sortedFile2);
+                    file1Path = sortedFile1;
+                    file2Path = sortedFile2;
+
+                    if (opts.IgnoreHeader)
+                    {
+                        file1Path = PrependCsvHeader(header1, file1Path, tempFiles);
+                        file2Path = PrependCsvHeader(header2, file2Path, tempFiles);
+                    }
+                }
+
+                comparer = new CsvChunkedComparer(file1Path, file2Path, opts.Delimiter, opts.IgnoreHeader, opts.Normalize);
+                comparer.Compare(mainObject);
+            }
+            finally
+            {
+                CleanupTempFiles(tempFiles);
+            }
+
+            await Task.CompletedTask;
+        }
+
+        public async Task RunExcelCompare(CompareExcelOptions opts)
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task RunPdfCompare(ComparePdfOptions opts)
+        {
+            throw new NotImplementedException();
+        }
+
+        private static string NormalizeFile(string inputFilePath, List<string> tempFiles)
+        {
+            string normalizedPath = Path.GetTempFileName();
+            tempFiles.Add(normalizedPath);
+
+            using (var reader = new StreamReader(inputFilePath))
+            using (var writer = new StreamWriter(normalizedPath))
+            {
+                while (!reader.EndOfStream)
+                {
+                    string line = reader.ReadLine();
+                    writer.WriteLine(NormalizeValue(line));
+                }
+            }
+
+            return normalizedPath;
+        }
+
+        private static string StripCsvHeader(string inputFilePath, out string header, List<string> tempFiles)
+        {
+            string contentPath = Path.GetTempFileName();
+            tempFiles.Add(contentPath);
+
+            using (var reader = new StreamReader(inputFilePath))
+            using (var writer = new StreamWriter(contentPath))
+            {
+                header = reader.ReadLine();
+                while (!reader.EndOfStream)
+                {
+                    writer.WriteLine(reader.ReadLine());
+                }
+            }
+
+            return contentPath;
+        }
+
+        private static string PrependCsvHeader(string header, string sortedContentPath, List<string> tempFiles)
+        {
+            string outputPath = Path.GetTempFileName();
+            tempFiles.Add(outputPath);
+
+            using (var writer = new StreamWriter(outputPath))
+            {
+                if (!string.IsNullOrEmpty(header))
+                {
+                    writer.WriteLine(header);
+                }
+
+                using (var reader = new StreamReader(sortedContentPath))
+                {
+                    while (!reader.EndOfStream)
+                    {
+                        writer.WriteLine(reader.ReadLine());
+                    }
+                }
+            }
+
+            return outputPath;
+        }
+
+        private static string NormalizeValue(string line)
+        {
+            return (line ?? string.Empty).Trim();
+        }
+
+        private static void CleanupTempFiles(IEnumerable<string> tempFiles)
+        {
+            foreach (var tempFile in tempFiles)
+            {
+                try
+                {
+                    if (File.Exists(tempFile))
+                    {
+                        File.Delete(tempFile);
+                    }
+                }
+                catch
+                {
+                }
+            }
+        }
 
         public async Task AppMain(string[] args)
         {

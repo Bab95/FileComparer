@@ -5,7 +5,7 @@ using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FileComparer.Models
+namespace FileComparer.Models.Comparer
 {
     public class SequentialFileComparer : FileComparer
     {
@@ -13,13 +13,13 @@ namespace FileComparer.Models
         public int printNoOfDiffs { get; set; } = 5;
         public SequentialFileComparer(string file1Path,  string file2Path)
         {
-            this.File1Path = file1Path;
-            this.File2Path = file2Path;
+            File1Path = file1Path;
+            File2Path = file2Path;
         }
         
         public void PrintSummary()
         {
-            Console.WriteLine(this.summary.ToString());
+            Console.WriteLine(summary.ToString());
         }
 
         public override void Compare(object obj)
@@ -29,8 +29,8 @@ namespace FileComparer.Models
             try
             {
                 long noOfDifferentLines = 0;
-                using (StreamReader reader1 = new StreamReader(this.File1Path)) 
-                    using (StreamReader reader2 = new StreamReader(this.File2Path))
+                using (StreamReader reader1 = new StreamReader(File1Path)) 
+                    using (StreamReader reader2 = new StreamReader(File2Path))
                 {
                     string line1 = null;
                     string line2 = null;
@@ -42,7 +42,7 @@ namespace FileComparer.Models
                         if (!line1.Equals(line2))
                         {
                             noOfDifferentLines++;
-                            if (this.printDiffs == true && countOfPrinted < this.printNoOfDiffs)
+                            if (printDiffs == true && countOfPrinted < printNoOfDiffs)
                             {
                                 Console.WriteLine($"[File1::{lineNumber} :: {line1}");
                                 Console.WriteLine($"[File2::{lineNumber} :: {line2}");

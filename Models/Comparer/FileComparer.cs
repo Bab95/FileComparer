@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FileComparer.Models
+namespace FileComparer.Models.Comparer
 {
     public abstract class FileComparer : IComparer
     {

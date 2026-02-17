@@ -1,24 +1,27 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace FileComparer.Models
+namespace FileComparer.Models.Sorting
 {
-    public class SortingContext
+    public class CsvFileSortingStrategy : ISortingStrategy
     {
-        private int ChunkSize { get; set; }
+        private readonly int chunkSize;
+        private readonly char delimiter;
+        private readonly int sortColumnIndex;
+        private readonly bool normalize;
 
-        public SortingContext(int chunkSize)
+        public CsvFileSortingStrategy(int chunkSize, char delimiter, int sortColumnIndex, bool normalize)
         {
-            this.ChunkSize = chunkSize;
+            this.chunkSize = chunkSize;
+            this.delimiter = delimiter;
+            this.sortColumnIndex = sortColumnIndex;
+            this.normalize = normalize;
         }
 
-
-        public void SortLargeFileParallel(string inputFilePath, string outputFilePath, int chunkSize)
+        public void Sort(string inputFilePath, string outputFilePath)
         {
             List<string> tempFiles = new List<string>();
             List<Task> tasks = new List<Task>();
@@ -27,6 +30,7 @@ namespace FileComparer.Models
             {
                 Directory.Delete(tempDirectory, true);
             }
+
             Directory.CreateDirectory(tempDirectory);
 
             try
@@ -39,11 +43,11 @@ namespace FileComparer.Models
                     {
                         chunk.Add(reader.ReadLine());
 
-                        if (chunk.Count >= this.ChunkSize)
+                        if (chunk.Count >= chunkSize)
                         {
                             string tempFilePath = Path.Combine(tempDirectory, $"tc_{chunkIndex}.txt");
                             tempFiles.Add(tempFilePath);
-                            var chunkToSort = chunk.ToList(); // Create a copy for parallel processing
+                            var chunkToSort = chunk.ToList();
                             var sortingTask = Task.Run(() => SortAndWriteChunk(chunkToSort, tempFilePath));
 
                             chunk.Clear();
@@ -56,21 +60,18 @@ namespace FileComparer.Models
                     {
                         string tempFilePath = Path.Combine(tempDirectory, $"tc_{chunkIndex}.txt");
                         tempFiles.Add(tempFilePath);
-                        var chunkToSort = chunk.ToList(); // Create a copy for parallel processing
+                        var chunkToSort = chunk.ToList();
                         var sortingTask = Task.Run(() => SortAndWriteChunk(chunkToSort, tempFilePath));
                         tasks.Add(sortingTask);
                     }
                 }
 
-                // Wait for all sorting tasks to complete
                 Task.WhenAll(tasks).Wait();
 
-                // Merge the sorted chunks into the output file
                 MergeSortedChunks(tempFiles, outputFilePath);
             }
             finally
             {
-                // Clean up temporary files
                 if (Directory.Exists(tempDirectory))
                 {
                     Directory.Delete(tempDirectory, true);
@@ -80,8 +81,22 @@ namespace FileComparer.Models
 
         private async Task SortAndWriteChunk(List<string> chunk, string tempFilePath)
         {
-            chunk.Sort();
-            await File.WriteAllLinesAsync(tempFilePath, chunk);
+            var sorted = chunk
+                .Select(line => new CsvSortItem(line, GetSortKey(line)))
+                .ToList();
+
+            sorted.Sort((left, right) =>
+            {
+                int compare = string.Compare(left.SortKey, right.SortKey, StringComparison.Ordinal);
+                if (compare != 0)
+                {
+                    return compare;
+                }
+
+                return string.Compare(left.Line, right.Line, StringComparison.Ordinal);
+            });
+
+            await File.WriteAllLinesAsync(tempFilePath, sorted.Select(item => item.Line));
         }
 
         private void MergeSortedChunks(List<string> chunkFiles, string outputFilePath)
@@ -89,18 +104,16 @@ namespace FileComparer.Models
             using (var outputWriter = new StreamWriter(outputFilePath))
             {
                 var readers = chunkFiles.Select(file => new StreamReader(file)).ToList();
-                var lines = new List<Container>(readers.Count);
-                PriorityQueueImpl<Container> pq = new PriorityQueueImpl<Container>();
+                PriorityQueueImpl<CsvContainer> pq = new PriorityQueueImpl<CsvContainer>();
 
-                // Initialize lines with the first line from each chunk
                 for (int i = 0; i < readers.Count; i++)
                 {
-                    //string line = readers[i].ReadLine();
-                    Container _cont = new Container(readers[i]);
-                    _cont.currenLine = _cont.Reader.ReadLine();
-                    if (_cont.currenLine != null)
+                    CsvContainer container = new CsvContainer(readers[i]);
+                    container.CurrentLine = container.Reader.ReadLine();
+                    if (container.CurrentLine != null)
                     {
-                        pq.Enqueue(_cont);
+                        container.SortKey = GetSortKey(container.CurrentLine);
+                        pq.Enqueue(container);
                     }
                 }
 
@@ -108,16 +121,17 @@ namespace FileComparer.Models
                 {
                     var current = pq.Dequeue();
 
-                    outputWriter.WriteLine(current.currenLine);
+                    outputWriter.WriteLine(current.CurrentLine);
 
-                    current.currenLine = current.Reader.ReadLine();
+                    current.CurrentLine = current.Reader.ReadLine();
 
-                    if (current.currenLine == null)
+                    if (current.CurrentLine == null)
                     {
                         current.Reader.Dispose();
                     }
                     else
                     {
+                        current.SortKey = GetSortKey(current.CurrentLine);
                         pq.Enqueue(current);
                     }
                 }
@@ -127,6 +141,32 @@ namespace FileComparer.Models
                     readers[i].Close();
                 }
             }
+        }
+
+        private string GetSortKey(string line)
+        {
+            var fields = (line ?? string.Empty).Split(delimiter);
+            int index = Math.Max(0, sortColumnIndex - 1);
+            string key = index < fields.Length ? fields[index] : string.Empty;
+
+            if (normalize)
+            {
+                return key.Trim();
+            }
+
+            return key;
+        }
+
+        private class CsvSortItem
+        {
+            public CsvSortItem(string line, string sortKey)
+            {
+                Line = line;
+                SortKey = sortKey;
+            }
+
+            public string Line { get; }
+            public string SortKey { get; }
         }
     }
 }

@@ -38,6 +38,10 @@ public abstract class CsvCompareOptionsBase : DataCompareOptionsBase
         HelpText = "CSV delimiter")]
     public char Delimiter { get; set; }
 
+    [Option("sortColumn", Required = false, Default = 1,
+        HelpText = "CSV sort column index (1-based)")]
+    public int SortColumn { get; set; }
+
     [Option("ignoreHeader", Required = false,
         HelpText = "Ignore header row")]
     public bool IgnoreHeader { get; set; }

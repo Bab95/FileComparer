@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FileComparer.Models
+namespace FileComparer.Models.Comparer
 {
     /// <summary>
     /// Compares File in chunks and prints Indexes.
@@ -27,8 +27,8 @@ namespace FileComparer.Models
 
         public ChunkedFileComparer(string file1Path, string file2Path)
         {
-            this.File1Path = file1Path;
-            this.File2Path = file2Path;
+            File1Path = file1Path;
+            File2Path = file2Path;
         }
 
         public ChunkedFileComparer(string file1Path, string file2Path, bool printIndexes_) 
@@ -70,8 +70,8 @@ namespace FileComparer.Models
             int chunkSize = (int)obj;
             List<string> linesChunk1 = new List<string>();
             List<string> linesChunk2 = new List<string>();
-            using (StreamReader reader1 = new StreamReader(this.File1Path))
-            using (StreamReader reader2 = new StreamReader(this.File2Path))
+            using (StreamReader reader1 = new StreamReader(File1Path))
+            using (StreamReader reader2 = new StreamReader(File2Path))
             {
                 int lineNumber = 0;
                 string line1 = null;
