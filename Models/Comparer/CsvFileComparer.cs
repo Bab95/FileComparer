@@ -144,9 +144,73 @@ public class CsvFileComparer : ChunkedFileComparer
     public override void Compare(object obj)
     {
         this.Sort();
-
+        
         // similar to data comparer read data parse it normalize it and then comapre chunk by chunk.
         Logger.LogError("CSV comparison is not implemented yet.");
         throw new NotImplementedException("CSV comparison is not implemented yet.");
+    }
+
+    public void CompareAllLines(object obj)
+    {
+        int chunkSize = (int)obj;
+        List<string> linesChunk1 = new List<string>();
+        List<string> linesChunk2 = new List<string>();
+        using (StreamReader reader1 = new StreamReader(this.File1Path))
+        using (StreamReader reader2 = new StreamReader(this.File2Path))
+        {
+            int lineNumber = 0;
+            string line1 = null;
+            string line2 = null;
+            while ((line1 = reader1.ReadLine()) != null &&
+                (line2 = reader2.ReadLine()) != null)
+            {
+
+                linesChunk1.Add(line1);
+                linesChunk2.Add(line2);
+
+                lineNumber++;
+                if (linesChunk1.Count == chunkSize || linesChunk2.Count == chunkSize)
+                {
+                    List<CsvRecord> chunk1ToProcess = new List<CsvRecord>(linesChunk1.Select(line => new CsvRecord(lineNumber, line, true)));
+                    List<CsvRecord> chunk2ToProcess = new List<CsvRecord>(linesChunk2.Select(line => new CsvRecord(lineNumber, line, true)));
+                    CsvChunkData csvChunkData = new CsvChunkData(chunk1ToProcess, chunk2ToProcess, lineNumber);
+                    while (countofActiveWorkers >= Constants.MaxThreadsCount)
+                    {
+                        // Wait for an active worker to finish before starting a new one
+                    }
+
+                    lock (activeWorkerLock)
+                    {
+                        ++countofActiveWorkers;
+                    }
+                    ThreadPool.QueueUserWorkItem(new WaitCallback(ProcessCsvChunk), csvChunkData);
+                    linesChunk1.Clear();
+                    linesChunk2.Clear();
+                }
+            }
+        }
+    }
+
+    public static void ProcessCsvChunk(object obj)
+    {
+        CsvChunkData csvChunkData = (CsvChunkData)obj;
+        // Process the chunk of CSV records and compare them
+        // For each pair of records that are different, enqueue the difference in recordDifferences
+        // ...
+        for (int index=0;index<csvChunkData.Records1.Count; index++)
+        {
+            CsvRecord record1 = csvChunkData.Records1[index];
+            CsvRecord record2 = csvChunkData.Records2[index];
+            if (!record1.Equals(record2))
+            {
+                recordDifferences.Enqueue(new Pair<CsvRecord, CsvRecord>(record1, record2));
+            }
+        }
+
+        lock (activeWorkerLock)
+        {
+            --countofActiveWorkers;
+            Monitor.Pulse(activeWorkerLock); // Notify waiting threads that a worker has finished
+        }
     }
 }

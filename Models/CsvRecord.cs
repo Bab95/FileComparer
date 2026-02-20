@@ -65,6 +65,29 @@ namespace FileComparer.Models
             return fields;
         }
 
+        public override bool Equals(object? obj)
+        {
+            if (obj is CsvRecord other)
+            {
+                if (Fields.Count != other.Fields.Count)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < Fields.Count; i++)
+                {
+                    if (!string.Equals(Fields[i], other.Fields[i], StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+
+            return false;
+        }
+
         /// <summary>
         /// Normalizes a field value by trimming whitespace and converting it to a consistent case (e.g., lowercase).
         /// </summary>
