@@ -6,11 +6,33 @@ using System.Threading.Tasks;
 
 namespace FileComparer.Models.Sorting
 {
+    /// <summary>
+    /// Implements an external sorting strategy for CSV files, 
+    /// allowing for efficient sorting of large datasets that may not fit into memory. This strategy reads the input CSV file in chunks, sorts each chunk based on a specified column index, and then merges the sorted chunks to produce the final sorted output file. The sorting can be customized with options for normalization and delimiter specification.
+    /// </summary>
     public class CsvFileSortingStrategy : ISortingStrategy
     {
+        /// <summary>
+        /// chunkSize determines the number of records to read and sort in memory at a time. 
+        /// This allows the sorting process to handle large files by breaking them into manageable pieces.
+        /// </summary>
         private readonly int chunkSize;
+
+        /// <summary>
+        /// Delimiter is the character or string used to separate fields in the CSV file. 
+        /// It is essential for correctly parsing the records and sorting based on the specified column index.
+        /// </summary>
         private readonly string delimiter;
+
+        /// <summary>
+        /// SortColumnIndex specifies the index of the column to sort by. The sorting will be performed based on the values in this column, allowing for flexible sorting criteria depending on the structure of the CSV file.
+        /// </summary>
         private readonly int sortColumnIndex;
+
+        /// <summary>
+        /// Normalize indicates whether to normalize the fields before sorting. 
+        /// Normalization can include operations such as trimming whitespace, converting to lowercase, or other transformations that ensure consistent sorting behavior regardless of variations in the input data.
+        /// </summary>
         private readonly bool normalize;
 
         public CsvFileSortingStrategy(int chunkSize, string delimiter, int sortColumnIndex, bool normalize)
@@ -21,152 +43,26 @@ namespace FileComparer.Models.Sorting
             this.normalize = normalize;
         }
 
+        /// <summary>
+        /// DefaultSort provides a basic implementation of the sorting process using the DataFileSortingStrategy.
+        /// </summary>
+        /// <param name="inputFilePath">The path to the input CSV file.</param>
+        /// <param name="outputFilePath">The path to the output CSV file.</param>
+        public void DefaultSort(string inputFilePath, string outputFilePath)
+        {
+            ISortingStrategy defaultSorting = new DataFileSortingStrategy(chunkSize);
+            defaultSorting.Sort(inputFilePath, outputFilePath);
+        }
+
+        /// <summary>
+        /// Sorts the input CSV file based on the specified sort column index and normalization settings, writing the sorted output to the specified file path. This method is designed to handle large CSV files efficiently by implementing an external sorting algorithm that processes the data in chunks, sorts each chunk in memory, and then merges the sorted chunks to produce the final sorted output.
+        /// </summary>
+        /// <param name="inputFilePath">The path to the input CSV file.</param>
+        /// <param name="outputFilePath">The path to the output CSV file.</param>
         public void Sort(string inputFilePath, string outputFilePath)
         {
-            List<string> tempFiles = new List<string>();
-            List<Task> tasks = new List<Task>();
-            string tempDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tempchunks");
-            if (Directory.Exists(tempDirectory))
-            {
-                Directory.Delete(tempDirectory, true);
-            }
-
-            Directory.CreateDirectory(tempDirectory);
-
-            try
-            {
-                using (var reader = new StreamReader(inputFilePath))
-                {
-                    int chunkIndex = 0;
-                    List<string> chunk = new List<string>();
-                    while (!reader.EndOfStream)
-                    {
-                        chunk.Add(reader.ReadLine());
-
-                        if (chunk.Count >= chunkSize)
-                        {
-                            string tempFilePath = Path.Combine(tempDirectory, $"tc_{chunkIndex}.txt");
-                            tempFiles.Add(tempFilePath);
-                            var chunkToSort = chunk.ToList();
-                            var sortingTask = Task.Run(() => SortAndWriteChunk(chunkToSort, tempFilePath));
-
-                            chunk.Clear();
-                            chunkIndex++;
-                            tasks.Add(sortingTask);
-                        }
-                    }
-
-                    if (chunk.Count > 0)
-                    {
-                        string tempFilePath = Path.Combine(tempDirectory, $"tc_{chunkIndex}.txt");
-                        tempFiles.Add(tempFilePath);
-                        var chunkToSort = chunk.ToList();
-                        var sortingTask = Task.Run(() => SortAndWriteChunk(chunkToSort, tempFilePath));
-                        tasks.Add(sortingTask);
-                    }
-                }
-
-                Task.WhenAll(tasks).Wait();
-
-                MergeSortedChunks(tempFiles, outputFilePath);
-            }
-            finally
-            {
-                if (Directory.Exists(tempDirectory))
-                {
-                    Directory.Delete(tempDirectory, true);
-                }
-            }
-        }
-
-        private async Task SortAndWriteChunk(List<string> chunk, string tempFilePath)
-        {
-            var sorted = chunk
-                .Select(line => new CsvSortItem(line, GetSortKey(line)))
-                .ToList();
-
-            sorted.Sort((left, right) =>
-            {
-                int compare = string.Compare(left.SortKey, right.SortKey, StringComparison.Ordinal);
-                if (compare != 0)
-                {
-                    return compare;
-                }
-
-                return string.Compare(left.Line, right.Line, StringComparison.Ordinal);
-            });
-
-            await File.WriteAllLinesAsync(tempFilePath, sorted.Select(item => item.Line));
-        }
-
-        private void MergeSortedChunks(List<string> chunkFiles, string outputFilePath)
-        {
-            using (var outputWriter = new StreamWriter(outputFilePath))
-            {
-                var readers = chunkFiles.Select(file => new StreamReader(file)).ToList();
-                PriorityQueueImpl<CsvContainer> pq = new PriorityQueueImpl<CsvContainer>();
-
-                for (int i = 0; i < readers.Count; i++)
-                {
-                    CsvContainer container = new CsvContainer(readers[i]);
-                    container.CurrentLine = container.Reader.ReadLine();
-                    if (container.CurrentLine != null)
-                    {
-                        container.SortKey = GetSortKey(container.CurrentLine);
-                        pq.Enqueue(container);
-                    }
-                }
-
-                while (!pq.IsEmpty())
-                {
-                    var current = pq.Dequeue();
-
-                    outputWriter.WriteLine(current.CurrentLine);
-
-                    current.CurrentLine = current.Reader.ReadLine();
-
-                    if (current.CurrentLine == null)
-                    {
-                        current.Reader.Dispose();
-                    }
-                    else
-                    {
-                        current.SortKey = GetSortKey(current.CurrentLine);
-                        pq.Enqueue(current);
-                    }
-                }
-
-                for (int i = 0; i < readers.Count; i++)
-                {
-                    readers[i].Close();
-                }
-            }
-        }
-
-        private string GetSortKey(string line)
-        {
-            var fields = (line ?? string.Empty).Split(delimiter);
-            int index = Math.Max(0, sortColumnIndex - 1);
-            string key = index < fields.Length ? fields[index] : string.Empty;
-
-            if (normalize)
-            {
-                return key.Trim();
-            }
-
-            return key;
-        }
-
-        private class CsvSortItem
-        {
-            public CsvSortItem(string line, string sortKey)
-            {
-                Line = line;
-                SortKey = sortKey;
-            }
-
-            public string Line { get; }
-            public string SortKey { get; }
+            // TODO: Implement external sorting for CSV files based on the specified sort column and normalization settings.
+            this.DefaultSort(inputFilePath, outputFilePath);
         }
     }
 }

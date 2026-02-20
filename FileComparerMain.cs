@@ -81,7 +81,7 @@ namespace FileComparer
                         file2Path = StripCsvHeader(file2Path, out header2, tempFiles);
                     }
 
-                    sortingContext = new SortingContext(new CsvFileSortingStrategy(Constants.SortChunkSize, opts.Delimiter, opts.SortColumn, opts.Normalize));
+                    sortingContext = new SortingContext(new CsvFileSortingStrategy(Constants.SortChunkSize, opts.Delimiter.ToString(), opts.SortColumn, opts.Normalize));
                     string sortedFile1 = Path.GetTempFileName();
                     string sortedFile2 = Path.GetTempFileName();
                     tempFiles.Add(sortedFile1);
@@ -98,7 +98,7 @@ namespace FileComparer
                     }
                 }
 
-                comparer = new CsvChunkedComparer(file1Path, file2Path, opts.Delimiter, opts.IgnoreHeader, opts.Normalize);
+                comparer = new CsvFileComparer(file1Path, file2Path, opts.Delimiter.ToString(), opts.Sort, opts.Normalize);
                 comparer.Compare(mainObject);
             }
             finally
