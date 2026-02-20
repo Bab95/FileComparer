@@ -159,8 +159,8 @@ public class CsvFileComparer : ChunkedFileComparer
         using (StreamReader reader2 = new StreamReader(this.File2Path))
         {
             int lineNumber = 0;
-            string line1 = null;
-            string line2 = null;
+            string? line1 = null;
+            string? line2 = null;
             while ((line1 = reader1.ReadLine()) != null &&
                 (line2 = reader2.ReadLine()) != null)
             {
@@ -183,6 +183,7 @@ public class CsvFileComparer : ChunkedFileComparer
                     {
                         ++countofActiveWorkers;
                     }
+
                     ThreadPool.QueueUserWorkItem(new WaitCallback(ProcessCsvChunk), csvChunkData);
                     linesChunk1.Clear();
                     linesChunk2.Clear();
