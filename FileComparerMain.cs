@@ -39,12 +39,6 @@ namespace FileComparer
 
             try
             {
-                if (opts.Normalize)
-                {
-                    file1Path = NormalizeFile(file1Path, tempFiles);
-                    file2Path = NormalizeFile(file2Path, tempFiles);
-                }
-
                 if (opts.Sort)
                 {
                     sortingContext = new SortingContext(new DataFileSortingStrategy(Constants.SortChunkSize));
@@ -58,7 +52,7 @@ namespace FileComparer
                     file2Path = sortedFile2;
                 }
 
-                comparer = new ChunkedFileComparer(file1Path, file2Path);
+                comparer = new DataFileComparer(file1Path, file2Path);
                 comparer.Compare(mainObject);
             }
             finally

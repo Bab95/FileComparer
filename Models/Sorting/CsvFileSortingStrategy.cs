@@ -9,11 +9,11 @@ namespace FileComparer.Models.Sorting
     public class CsvFileSortingStrategy : ISortingStrategy
     {
         private readonly int chunkSize;
-        private readonly char delimiter;
+        private readonly string delimiter;
         private readonly int sortColumnIndex;
         private readonly bool normalize;
 
-        public CsvFileSortingStrategy(int chunkSize, char delimiter, int sortColumnIndex, bool normalize)
+        public CsvFileSortingStrategy(int chunkSize, string delimiter, int sortColumnIndex, bool normalize)
         {
             this.chunkSize = chunkSize;
             this.delimiter = delimiter;
