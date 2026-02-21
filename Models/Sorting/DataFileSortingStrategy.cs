@@ -15,6 +15,7 @@ namespace FileComparer.Models.Sorting
             this.chunkSize = chunkSize;
         }
 
+        #region Sorting Strategy Begins
         public void Sort(string inputFilePath, string outputFilePath)
         {
             List<string> tempFiles = new List<string>();
@@ -23,10 +24,12 @@ namespace FileComparer.Models.Sorting
             if (Directory.Exists(tempDirectory))
             {
                 Directory.Delete(tempDirectory, true);
+                Logger.LogWarn("Existing temporary directory found and deleted: " + tempDirectory);
             }
 
             Directory.CreateDirectory(tempDirectory);
-
+            Logger.LogInfo("Temporary directory created for chunk files: " + tempDirectory);
+            
             try
             {
                 using (var reader = new StreamReader(inputFilePath))
@@ -61,26 +64,39 @@ namespace FileComparer.Models.Sorting
                 }
 
                 Task.WhenAll(tasks).Wait();
-
+                Logger.LogInfo("All chunks sorted and written to temporary files. Starting merge process...");
                 MergeSortedChunks(tempFiles, outputFilePath);
             }
             finally
             {
                 if (Directory.Exists(tempDirectory))
                 {
+                    Logger.LogWarn("Clearing out Temp directory!!");
                     Directory.Delete(tempDirectory, true);
                 }
             }
         }
 
-        private async Task SortAndWriteChunk(List<string> chunk, string tempFilePath)
-        {
-            chunk.Sort();
-            await File.WriteAllLinesAsync(tempFilePath, chunk);
-        }
-
         private void MergeSortedChunks(List<string> chunkFiles, string outputFilePath)
         {
+
+            if (File.Exists(outputFilePath))
+            {
+                Logger.LogWarn("Output file already exists and will be overwritten: " + outputFilePath);
+                File.Delete(outputFilePath);
+            }
+
+            if (Directory.Exists(outputFilePath))
+            {
+                Logger.LogWarn("Output file already exists and will be overwritten: " + outputFilePath);
+                Directory.Delete(outputFilePath);
+            }
+            else
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(outputFilePath));
+            }
+
+            Logger.LogInfo("Merging sorted chunk files into final output file: " + outputFilePath);
             using (var outputWriter = new StreamWriter(outputFilePath))
             {
                 var readers = chunkFiles.Select(file => new StreamReader(file)).ToList();
@@ -119,6 +135,14 @@ namespace FileComparer.Models.Sorting
                     readers[i].Close();
                 }
             }
+        }
+
+        #endregion
+
+        private async Task SortAndWriteChunk(List<string> chunk, string tempFilePath)
+        {
+            chunk.Sort();
+            await File.WriteAllLinesAsync(tempFilePath, chunk);
         }
     }
 }

@@ -1,4 +1,5 @@
 using CommandLine;
+using CommandLine.Text;
 
 public abstract class CompareOptionsBase
 {
@@ -28,8 +29,8 @@ public abstract class DataCompareOptionsBase : CompareOptionsBase
     [Option('s', "sort", Required = false, HelpText = "Sort before compare")]
     public bool Sort { get; set; }
 
-    [Option("normalize", Required = false, HelpText = "Normalize before compare")]
-    public bool Normalize { get; set; }
+    [Option('n', "NoOfDifferences", Required = false, HelpText = "Number of differences to print")]
+    public int NoOfDifferences { get; set; }
 }
 
 public abstract class CsvCompareOptionsBase : DataCompareOptionsBase
@@ -37,6 +38,9 @@ public abstract class CsvCompareOptionsBase : DataCompareOptionsBase
     [Option("delimiter", Required = false, Default = ",",
         HelpText = "CSV delimiter")]
     public char Delimiter { get; set; }
+
+    [Option("normalize", Required = false, HelpText = "Normalize before compare")]
+    public bool Normalize { get; set; }
 
     [Option("sortColumn", Required = false, Default = 1,
         HelpText = "CSV sort column index (1-based)")]

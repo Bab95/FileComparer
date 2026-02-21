@@ -39,11 +39,13 @@ namespace FileComparer.Models
         /// <param name="record">The CSV record string.</param>
         /// <param name="normalize">Indicates whether to normalize the fields.</param>
         public CsvRecord(long recordId, 
-            string record, 
+            string record,
+            string delimiter,
             bool normalize)
         {
+            this.delimiter = delimiter;
             RecordId = recordId;
-            Fields = CsvRecord.ParseRecord(record,delimiter, normalize);
+            Fields = CsvRecord.ParseRecord(record, delimiter, normalize);
         }
 
         /// <summary>
@@ -65,6 +67,31 @@ namespace FileComparer.Models
             return fields;
         }
 
+        public void PrintWithDifferences(CsvRecord other)
+        {
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            int threadId = Thread.CurrentThread.ManagedThreadId;
+            Console.Write($"[{timestamp}] [Thread {threadId}] [Info] File2:");
+
+            for (int i = 0; i < Fields.Count; i++)
+            {
+                string fieldValue = GetField(i);
+                string otherFieldValue = other.GetField(i);
+                if (string.Equals(fieldValue, otherFieldValue, StringComparison.Ordinal))
+                {
+                    Console.Write($"{fieldValue}{delimiter}");
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.Write($"{fieldValue}");
+                    Console.ResetColor();
+                    Console.Write($"{delimiter}");
+                }
+            }
+            Console.WriteLine();
+        }
+
         public override bool Equals(object? obj)
         {
             if (obj is CsvRecord other)
@@ -84,8 +111,23 @@ namespace FileComparer.Models
                 return true;
             }
 
-
             return false;
+        }
+
+        public override string ToString()
+        {
+            string record = string.Empty;
+
+            for (int i = 0; i < Fields.Count; i++)
+            {
+                record += GetField(i);
+                if (i < Fields.Count - 1)
+                {
+                    record += delimiter;
+                }
+            }
+
+            return record;
         }
 
         /// <summary>

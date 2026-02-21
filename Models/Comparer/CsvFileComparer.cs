@@ -39,9 +39,20 @@ public class CsvFileComparer : ChunkedFileComparer
     private readonly int chunkSize = Constants.ChunkSize;
 
     /// <summary>
+    /// In case of differences, this variable limits the number of differences to report. 
+    /// This is useful for performance reasons and to avoid overwhelming the user with too many differences, especially when comparing large CSV files. The value can be adjusted based on the specific requirements of the comparison task.
+    /// </summary>
+    private readonly int noOfDifferencesToReport = 10;
+
+    /// <summary>
     /// Delimiter used to separate fields in the CSV records. This is essential for correctly parsing the records and performing comparisons based on the individual fields. The delimiter can be customized through the constructor, allowing for flexibility in handling different CSV formats.
     /// </summary>
     private string delimiter { get; set; }
+
+    /// <summary>
+    /// Normalization flag indicating whether to normalize the CSV records before comparison. Normalization can include operations such as trimming whitespace, converting to lowercase, or other transformations that ensure consistent comparison results regardless of variations in the input data. This flag can be set through the constructor to control whether normalization is applied during the sorting and comparison processes.
+    /// </summary>
+    private bool shouldNormalize { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the CsvFileComparer class with the specified file paths.
@@ -108,6 +119,7 @@ public class CsvFileComparer : ChunkedFileComparer
         bool shouldNormalize) : base(filePath1, filePath2)
     {
         this.delimiter = delimiter;
+        this.shouldNormalize = shouldNormalize;
         this.SortingContext = new SortingContext(new CsvFileSortingStrategy(this.chunkSize, 
                                                     delimiter,
                                                     0, // for simplicity we are sorting based on first column, this can be extended to take sorting column number as input. 
@@ -125,14 +137,29 @@ public class CsvFileComparer : ChunkedFileComparer
             // NOTE: outpath change for sorted files.
             Logger.LogInfo("Sorting CSV files started.");
             var stopwatch = Stopwatch.StartNew();
-            this.SortingContext.Sort(File1Path, File1Path);
-            this.SortingContext.Sort(File2Path, File2Path);
+            string tempDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tempsorted");
+            if (Directory.Exists(tempDirectory))
+            {
+                Logger.LogWarn("Existing Temp directory found. Deleting...");
+                Directory.Delete(tempDirectory, true);
+            }
+
+            string sortedFile1Path = $"{Path.Combine(tempDirectory, Path.GetFileNameWithoutExtension(File1Path))}_sorted{Path.GetExtension(File1Path)}";
+            this.SortingContext.Sort(File1Path, sortedFile1Path);
+            Logger.LogInfo($"Temporary sorted File Path: {sortedFile1Path}");
+            File1Path = sortedFile1Path;
+            
+            string sortedFile2Path = $"{Path.Combine(tempDirectory, Path.GetFileNameWithoutExtension(File2Path))}_sorted{Path.GetExtension(File2Path)}";
+            this.SortingContext.Sort(File2Path, sortedFile2Path);
+            File2Path = sortedFile2Path;
+
+            Logger.LogInfo($"Temporary sorted File Path2: {sortedFile2Path}");
             stopwatch.Stop();
             Logger.LogInfo($"Sorting CSV files completed in {stopwatch.ElapsedMilliseconds} ms.");
         }
         else
         {
-            Logger.LogWarn("Sorting was not requested.");
+            Logger.LogWarn("Sorting was not requested. Comparison will proceed without sorting.");
         }
     }
 
@@ -144,10 +171,40 @@ public class CsvFileComparer : ChunkedFileComparer
     public override void Compare(object obj)
     {
         this.Sort();
+        try
+        {
+            var start = Stopwatch.StartNew();
+            CompareAllLines(Constants.ChunkSize);
+            start.Stop();
+            Logger.LogInfo($"CSV comparison completed in {start.ElapsedMilliseconds} ms.");
+        }
+        catch (FileNotFoundException e)
+        {
+            Logger.LogError($"File not found. Please check file path {e.FileName} ");
+        }
+        catch (Exception e)
+        {
+            Logger.LogError($"Unknown Exception caught {e.Message}");
+        }
+        finally
+        {
+            lock (activeWorkerLock)
+            {
+                while (countofActiveWorkers > 0)
+                {
+                    Monitor.Wait(activeWorkerLock);
+                }
+            }
+
+        }
         
-        // similar to data comparer read data parse it normalize it and then comapre chunk by chunk.
-        Logger.LogError("CSV comparison is not implemented yet.");
-        throw new NotImplementedException("CSV comparison is not implemented yet.");
+        PrintSummary();
+    }
+
+    private void PrintSummary()
+    {
+        CsvComparisonSummary summary = new CsvComparisonSummary(recordDifferences, outputKind);
+        summary.PrintSummary();
     }
 
     public void CompareAllLines(object obj)
@@ -171,8 +228,8 @@ public class CsvFileComparer : ChunkedFileComparer
                 lineNumber++;
                 if (linesChunk1.Count == chunkSize || linesChunk2.Count == chunkSize)
                 {
-                    List<CsvRecord> chunk1ToProcess = new List<CsvRecord>(linesChunk1.Select(line => new CsvRecord(lineNumber, line, true)));
-                    List<CsvRecord> chunk2ToProcess = new List<CsvRecord>(linesChunk2.Select(line => new CsvRecord(lineNumber, line, true)));
+                    List<CsvRecord> chunk1ToProcess = linesChunk1.Select(line => new CsvRecord(lineNumber, line, delimiter, shouldNormalize)).ToList();
+                    List<CsvRecord> chunk2ToProcess = linesChunk2.Select(line => new CsvRecord(lineNumber, line, delimiter, shouldNormalize)).ToList();
                     CsvChunkData csvChunkData = new CsvChunkData(chunk1ToProcess, chunk2ToProcess, lineNumber);
                     while (countofActiveWorkers >= Constants.MaxThreadsCount)
                     {

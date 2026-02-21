@@ -1,4 +1,5 @@
 using CommandLine;
+using FileComparer.Models;
 using FileComparer.Models.Comparer;
 using FileComparer.Models.Sorting;
 using System;
@@ -55,9 +56,10 @@ namespace FileComparer
                 comparer = new DataFileComparer(file1Path, file2Path);
                 comparer.Compare(mainObject);
             }
-            finally
+            catch(Exception e)
             {
-                CleanupTempFiles(tempFiles);
+                Logger.LogError($"Exception occured!! {e.Message}");
+                Logger.LogError(e.StackTrace == null ? string.Empty : e.StackTrace);
             }
 
             await Task.CompletedTask;
@@ -65,45 +67,23 @@ namespace FileComparer
 
         public async Task RunCsvCompare(CompareCsvOptions opts)
         {
-            List<string> tempFiles = new List<string>();
             string file1Path = opts.File1InputPath;
             string file2Path = opts.File2InputPath;
-            string header1 = null;
-            string header2 = null;
-
+            
             try
             {
-                if (opts.Sort)
+                comparer = new CsvFileComparer(file1Path, file2Path, opts.Delimiter.ToString(), opts.Sort, opts.Normalize)
                 {
-                    if (opts.IgnoreHeader)
-                    {
-                        file1Path = StripCsvHeader(file1Path, out header1, tempFiles);
-                        file2Path = StripCsvHeader(file2Path, out header2, tempFiles);
-                    }
+                    outputKind = opts.OutPath != null ? OutputKind.FileWriting : OutputKind.OnConsole,
+                    OutputPath = opts.OutPath == null ? string.Empty : opts.OutPath
+                };
 
-                    sortingContext = new SortingContext(new CsvFileSortingStrategy(Constants.SortChunkSize, opts.Delimiter.ToString(), opts.SortColumn, opts.Normalize));
-                    string sortedFile1 = Path.GetTempFileName();
-                    string sortedFile2 = Path.GetTempFileName();
-                    tempFiles.Add(sortedFile1);
-                    tempFiles.Add(sortedFile2);
-                    sortingContext.Sort(file1Path, sortedFile1);
-                    sortingContext.Sort(file2Path, sortedFile2);
-                    file1Path = sortedFile1;
-                    file2Path = sortedFile2;
-
-                    if (opts.IgnoreHeader)
-                    {
-                        file1Path = PrependCsvHeader(header1, file1Path, tempFiles);
-                        file2Path = PrependCsvHeader(header2, file2Path, tempFiles);
-                    }
-                }
-
-                comparer = new CsvFileComparer(file1Path, file2Path, opts.Delimiter.ToString(), opts.Sort, opts.Normalize);
                 comparer.Compare(mainObject);
             }
-            finally
+            catch(Exception e)
             {
-                CleanupTempFiles(tempFiles);
+                Logger.LogError("Exception occurred while comparing csv files: " + e.Message);
+                Logger.LogError(e.StackTrace == null ? string.Empty : e.StackTrace);
             }
 
             await Task.CompletedTask;
@@ -164,23 +144,6 @@ namespace FileComparer
         private static string NormalizeValue(string line)
         {
             return (line ?? string.Empty).Trim();
-        }
-
-        private static void CleanupTempFiles(IEnumerable<string> tempFiles)
-        {
-            foreach (var tempFile in tempFiles)
-            {
-                try
-                {
-                    if (File.Exists(tempFile))
-                    {
-                        File.Delete(tempFile);
-                    }
-                }
-                catch
-                {
-                }
-            }
         }
 
         public async Task AppMain(string[] args)

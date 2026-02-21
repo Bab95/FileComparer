@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 
 namespace FileComparer
 {
@@ -23,7 +24,8 @@ namespace FileComparer
         private static void Write(LogLevel level, string message)
         {
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            Console.WriteLine($"[{timestamp}] [{level}] {message}");
+            int threadId = Thread.CurrentThread.ManagedThreadId;
+            Console.WriteLine($"[{timestamp}] [Thread:{threadId}] [{level}] {message}");
         }
 
         private enum LogLevel
