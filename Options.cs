@@ -40,7 +40,7 @@ public abstract class CsvCompareOptionsBase : DataCompareOptionsBase
     public char Delimiter { get; set; }
 
     [Option("normalize", Required = false, HelpText = "Normalize before compare")]
-    public bool Normalize { get; set; }
+    public bool Normalize { get; set; } = false;
 
     [Option("sortColumn", Required = false, Default = 1,
         HelpText = "CSV sort column index (1-based)")]

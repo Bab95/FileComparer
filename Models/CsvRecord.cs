@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace FileComparer.Models
 {
@@ -26,11 +28,13 @@ namespace FileComparer.Models
         /// </summary>
         public string delimiter { get; set; }
 
+        public List<string> Fields { get; }
+
         /// <summary>
         /// List of fields parsed from the CSV record. Each field is a string representing a value from the record,
         /// split based on the specified delimiter.
         /// </summary>
-        public List<string> Fields { get; }
+        public List<string> NormalizedField { get; }
 
         /// <summary>
         /// Constructs a new instance of the CsvRecord class with the specified record ID, record string, and normalization option.
@@ -45,7 +49,7 @@ namespace FileComparer.Models
         {
             this.delimiter = delimiter;
             RecordId = recordId;
-            Fields = CsvRecord.ParseRecord(record, delimiter, normalize);
+            NormalizedField = CsvRecord.ParseRecord(record, delimiter, normalize);
         }
 
         /// <summary>
@@ -61,7 +65,7 @@ namespace FileComparer.Models
             var rawFields = record.Split(new string[] { delimiter }, StringSplitOptions.None);
             foreach (var field in rawFields)
             {
-                fields.Add(NormalizeField(field));
+                fields.Add(normalize ? NormalizeField(field) : field);
             }
 
             return fields;
@@ -73,7 +77,7 @@ namespace FileComparer.Models
             int threadId = Thread.CurrentThread.ManagedThreadId;
             Console.Write($"[{timestamp}] [Thread {threadId}] [Info] File2:");
 
-            for (int i = 0; i < Fields.Count; i++)
+            for (int i = 0; i < NormalizedField.Count; i++)
             {
                 string fieldValue = GetField(i);
                 string otherFieldValue = other.GetField(i);
@@ -96,14 +100,14 @@ namespace FileComparer.Models
         {
             if (obj is CsvRecord other)
             {
-                if (Fields.Count != other.Fields.Count)
+                if (NormalizedField.Count != other.NormalizedField.Count)
                 {
                     return false;
                 }
 
-                for (int i = 0; i < Fields.Count; i++)
+                for (int i = 0; i < NormalizedField.Count; i++)
                 {
-                    if (!string.Equals(Fields[i], other.Fields[i], StringComparison.Ordinal))
+                    if (!string.Equals(NormalizedField[i], other.NormalizedField[i], StringComparison.Ordinal))
                     {
                         return false;
                     }
@@ -118,10 +122,10 @@ namespace FileComparer.Models
         {
             string record = string.Empty;
 
-            for (int i = 0; i < Fields.Count; i++)
+            for (int i = 0; i < NormalizedField.Count; i++)
             {
                 record += GetField(i);
-                if (i < Fields.Count - 1)
+                if (i < NormalizedField.Count - 1)
                 {
                     record += delimiter;
                 }
@@ -137,8 +141,91 @@ namespace FileComparer.Models
         /// <returns>The normalized field value.</returns>
         private static string NormalizeField(string field)
         {
-            // Implement Normalization logic as needed
-            return field;
+            if (field is null)
+            {
+                return string.Empty;
+            }
+
+            var trimmed = field.Trim();
+            if ((trimmed.StartsWith("\"") && trimmed.EndsWith("\"")) ||
+                (trimmed.StartsWith("'") && trimmed.EndsWith("'")))
+            {
+                trimmed = trimmed.Substring(1, trimmed.Length - 2).Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                return string.Empty;
+            }
+
+            var lower = trimmed.ToLowerInvariant();
+            if (lower == "null" || lower == "na" || lower == "n/a")
+            {
+                return string.Empty;
+            }
+
+            if (TryNormalizeDate(trimmed, out var normalizedDate))
+            {
+                return normalizedDate;
+            }
+
+            if (TryNormalizePercentage(trimmed, out var normalizedPercentage))
+            {
+                return normalizedPercentage;
+            }
+
+            if (TryNormalizeMoney(trimmed, out var normalizedMoney))
+            {
+                return normalizedMoney;
+            }
+
+            return lower.Trim();
+        }
+
+        private static bool TryNormalizeDate(string value, out string normalized)
+        {
+            normalized = string.Empty;
+            if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsed) ||
+                DateTime.TryParse(value, CultureInfo.CurrentCulture, DateTimeStyles.AllowWhiteSpaces, out parsed))
+            {
+                normalized = parsed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryNormalizePercentage(string value, out string normalized)
+        {
+            normalized = string.Empty;
+            if (!value.Contains('%'))
+            {
+                return false;
+            }
+
+            var match = Regex.Match(value, @"^\s*%?\s*(?<number>[+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*%?\s*$");
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            normalized = $"{match.Groups["number"].Value}%";
+            return true;
+        }
+
+        private static bool TryNormalizeMoney(string value, out string normalized)
+        {
+            normalized = string.Empty;
+            var match = Regex.Match(value, @"^\s*(?<currency>[\p{Sc}])\s*(?<number>[+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*$|^\s*(?<number>[+-]?(?:\d+(?:\.\d+)?|\.\d+))\s*(?<currency>[\p{Sc}])\s*$");
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            var currency = match.Groups["currency"].Value;
+            var number = match.Groups["number"].Value;
+            normalized = $"{currency}{number}".ToLowerInvariant();
+            return true;
         }
 
         /// <summary>
@@ -149,12 +236,12 @@ namespace FileComparer.Models
         /// <returns></returns>
         public string GetField(int index)
         {
-            if (index < 0 || index >= Fields.Count)
+            if (index < 0 || index >= NormalizedField.Count)
             {
                 return string.Empty;
             }
 
-            return Fields[index];
+            return NormalizedField[index];
         }
     }
 }
