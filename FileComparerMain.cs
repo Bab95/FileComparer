@@ -119,24 +119,6 @@ namespace FileComparer
             throw new NotImplementedException();
         }
 
-        private static string NormalizeFile(string inputFilePath, List<string> tempFiles)
-        {
-            string normalizedPath = Path.GetTempFileName();
-            tempFiles.Add(normalizedPath);
-
-            using (var reader = new StreamReader(inputFilePath))
-            using (var writer = new StreamWriter(normalizedPath))
-            {
-                while (!reader.EndOfStream)
-                {
-                    string line = reader.ReadLine();
-                    writer.WriteLine(NormalizeValue(line));
-                }
-            }
-
-            return normalizedPath;
-        }
-
         private static string StripCsvHeader(string inputFilePath, out string header, List<string> tempFiles)
         {
             string contentPath = Path.GetTempFileName();

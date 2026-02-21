@@ -15,8 +15,6 @@ namespace FileComparer.Models.Comparer
 
         public static bool printIndexes { get; set; } = false;
 
-        public OutputKind outputKind { get; set; }
-
         public static ConcurrentQueue<string> FileDifferences { get; set; } = new ConcurrentQueue<string>();
 
         public static ConcurrentQueue<int> LineDifferences { get; set; } = new ConcurrentQueue<int>();

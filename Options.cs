@@ -17,10 +17,10 @@ public abstract class CompareOptionsBase
     public string OperationName =>
         this.GetType().Name.Replace("Options", "");
 
-    public string OperationDescription =>
-        ((VerbAttribute)Attribute.GetCustomAttribute(
+    public string? OperationDescription =>
+        (Attribute.GetCustomAttribute(
             this.GetType(),
-            typeof(VerbAttribute)))?.HelpText;
+            typeof(VerbAttribute)) as VerbAttribute)?.HelpText;
 }
 
 public abstract class DataCompareOptionsBase : CompareOptionsBase
@@ -51,7 +51,7 @@ public abstract class ExcelCompareOptionsBase : DataCompareOptionsBase
 {
     [Option("sheet", Required = false,
         HelpText = "Sheet name")]
-    public string SheetName { get; set; }
+    public string? SheetName { get; set; }
 
     [Option("sheetIndex", Required = false,
         HelpText = "Sheet index")]
@@ -68,7 +68,7 @@ public abstract class PdfCompareOptionsBase : CompareOptionsBase
     public bool IgnoreWhitespace { get; set; }
 }
 
-[Verb("CompareData", HelpText = "Compare text files")]
+[Verb("CompareData", HelpText = "Compare Data(Raw text) files")]
 public class CompareDataFileOptions : DataCompareOptionsBase
 {
 }
@@ -78,12 +78,12 @@ public class CompareCsvOptions : CsvCompareOptionsBase
 {
 }
 
-[Verb("CompareExcel", HelpText = "Compare Excel files")]
+[Verb("CompareExcel", HelpText = "Compare Excel files (Not Implemented)")]
 public class CompareExcelOptions : ExcelCompareOptionsBase
 {
 }
 
-[Verb("ComparePdf", HelpText = "Compare PDF files")]
+[Verb("ComparePdf", HelpText = "Compare PDF files (Not Implemented)")]
 public class ComparePdfOptions : PdfCompareOptionsBase
 {
 }

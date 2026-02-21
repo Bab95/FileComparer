@@ -8,12 +8,16 @@ namespace FileComparer
 
         public static void LogWarn(string message)
         {
+            Console.ForegroundColor = ConsoleColor.Yellow;
             Write(LogLevel.Warn, message);
+            Console.ResetColor();
         }
 
         public static void LogError(string message)
         {
+            Console.ForegroundColor = ConsoleColor.Red;
             Write(LogLevel.Error, message);
+            Console.ResetColor();
         }
 
         private static void Write(LogLevel level, string message)

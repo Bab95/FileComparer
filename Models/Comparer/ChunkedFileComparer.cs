@@ -21,5 +21,7 @@ namespace FileComparer.Models.Comparer
         }
 
         public SortingContext? SortingContext { get; set; }
+
+        public OutputKind outputKind { get; set; }
     }
 }
