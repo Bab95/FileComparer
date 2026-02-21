@@ -25,7 +25,7 @@ namespace FileComparer
         {
             string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
             int threadId = Thread.CurrentThread.ManagedThreadId;
-            Console.WriteLine($"[{timestamp}] [Thread:{threadId}] [{level}] {message}");
+            Console.WriteLine($"[{level}] {message}");
         }
 
         private enum LogLevel
