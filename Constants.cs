@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace FileComparer
 {
     public static class Constants
@@ -11,7 +5,7 @@ namespace FileComparer
         /// <summary>
         /// Chunk size for breaking file for multithreaded processing.
         /// </summary>
-        public static readonly int ChunkSize = 50;
+        public static readonly int ChunkSize = 50000;
 
         /// <summary>
         /// Specifies the default number of items to process in each sort operation chunk.

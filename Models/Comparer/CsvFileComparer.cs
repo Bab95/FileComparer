@@ -201,12 +201,27 @@ public class CsvFileComparer : ChunkedFileComparer
         PrintSummary();
     }
 
+    /// <summary>
+    /// Prints a summary of the CSV comparison results to the configured output destination.
+    /// </summary>
+    /// <remarks>This method generates and displays a summary based on the current record differences and
+    /// output settings. It is intended for internal use and does not return any value or modify external state beyond
+    /// printing the summary.</remarks>
     private void PrintSummary()
     {
         CsvComparisonSummary summary = new CsvComparisonSummary(recordDifferences, outputKind);
         summary.PrintSummary();
     }
 
+    /// <summary>
+    /// Compares lines from two files in parallel by processing them in chunks of the specified size.
+    /// </summary>
+    /// <remarks>This method reads lines from both files simultaneously and processes them in chunks using
+    /// worker threads. The chunk size determines how many lines are compared at a time. The method is intended for use
+    /// in scenarios where large files need to be compared efficiently. Thread safety is managed internally, but callers
+    /// should ensure that the method is not invoked concurrently on the same instance.</remarks>
+    /// <param name="obj">An object representing the chunk size. Must be an integer greater than zero, indicating the number of lines to
+    /// process per chunk.</param>
     public void CompareAllLines(object obj)
     {
         int chunkSize = (int)obj;
@@ -249,6 +264,14 @@ public class CsvFileComparer : ChunkedFileComparer
         }
     }
 
+    /// <summary>
+    /// Processes a chunk of CSV records by comparing corresponding entries and enqueues any differences for further
+    /// analysis.
+    /// </summary>
+    /// <remarks>This method is intended for use in multi-threaded scenarios where CSV data is processed in
+    /// parallel. It decrements the active worker count and signals waiting threads when processing is complete. The
+    /// differences between records are enqueued for subsequent handling.</remarks>
+    /// <param name="obj">An object containing the data required to process the CSV chunk. Must be of type CsvChunkData.</param>
     public static void ProcessCsvChunk(object obj)
     {
         CsvChunkData csvChunkData = (CsvChunkData)obj;

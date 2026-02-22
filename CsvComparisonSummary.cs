@@ -1,41 +1,72 @@
 ﻿using FileComparer.Models;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FileComparer
 {
+    /// <summary>
+    /// Represents a summary of differences found during a CSV file comparison, including the output format and the
+    /// collection of differing records.
+    /// </summary>
+    /// <remarks>Use this class to access and display the results of a CSV comparison operation. The summary
+    /// includes the total number of differences and supports output to the console or to a file, depending on the
+    /// specified output kind. This class is intended for scenarios where a concise overview of comparison results is
+    /// needed.</remarks>
     public class CsvComparisonSummary
     {
+        /// <summary>
+        /// Gets the output kind used by the current instance.
+        /// </summary>
         private OutputKind outputKind { get; }
         
+        /// <summary>
+        /// Gets or sets the output file path used by the operation.
+        /// </summary>
         private string outpath { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Represents a thread-safe queue containing pairs of CSV records that differ from each other.
+        /// </summary>
         private ConcurrentQueue<Pair<CsvRecord, CsvRecord>> recordDifferences;
         
+        /// <summary>
+        /// Initializes a new instance of the CsvComparisonSummary class with the specified record differences and
+        /// output kind.
+        /// </summary>
+        /// <param name="recordDifferences">A thread-safe queue containing pairs of CsvRecord objects that represent differences found during CSV
+        /// comparison. Must not be null.</param>
+        /// <param name="outputKind">The output format to use when presenting the comparison summary.</param>
         public CsvComparisonSummary(ConcurrentQueue<Pair<CsvRecord, CsvRecord>> recordDifferences, OutputKind outputKind) 
         {
             this.recordDifferences = recordDifferences;
             this.outputKind = outputKind;
         }
 
+        /// <summary>
+        /// Prints a summary of the comparison results, including the total number of differences and the output
+        /// destination.
+        /// </summary>
+        /// <remarks>If the output kind is set to console and the number of differences exceeds the
+        /// maximum allowed for console display, only the first few differences are shown and a warning is logged.
+        /// Otherwise, the differences are written to the specified output path. This method is intended for
+        /// informational purposes and does not return any values.</remarks>
         public void PrintSummary()
         {
-            Logger.LogInfo  ("************************");
-            Logger.LogInfo  ("*Comparison Summary:    *");
-            Logger.LogError($"*Total Differences:   {recordDifferences.Count}*");
-            Logger.LogInfo ($"*Output Kind: {outputKind} *");
-            Logger.LogInfo  ("************************");
+            int d = recordDifferences.Count;
+
+            Logger.LogInfo  ("\n*************************\n" +
+                             "***Comparison Summary: **\n" +
+                             $"***Total Differences: {d}**\n" +
+                             $"**Output Kind:{outputKind}**\n" +
+                             "*************************");
+
             if (outputKind == OutputKind.OnConsole) {
                 if (recordDifferences.Count > Constants.MaxDifferenceToPrintOnConsole)
                 {
                     Logger.LogWarn("Too many differences to display on console. Only showing the first few differences.");
                 }
+
                 int count = 0;
-                while (count < Constants.MaxDifferenceToPrintOnConsole &&recordDifferences.TryDequeue(out var difference))
+                while (count < Constants.MaxDifferenceToPrintOnConsole && recordDifferences.TryDequeue(out var difference))
                 {
                     count++;
                     var firstRecord = difference.First;
@@ -48,7 +79,23 @@ namespace FileComparer
             }
             else
             {
-                Logger.LogError($"Differences would be Written to {outpath}");
+                if (string.IsNullOrEmpty(outpath))
+                {
+                    Logger.LogError($"Output path is not set. Differences were not written to file.");
+                    return;
+                }
+
+                using var writer = new StreamWriter(outpath, false);
+                while (recordDifferences.TryDequeue(out var difference))
+                {
+                    var firstRecord = difference.First;
+                    var secondRecord = difference.Second;
+                    writer.WriteLine($"File1: {firstRecord.ToString()}");
+                    writer.WriteLine( $"File2: {secondRecord.ToString()}");
+                    writer.WriteLine("==================================================");
+                }
+
+                Logger.LogInfo($"Differences were written to {outpath}");
             }
         }
     }

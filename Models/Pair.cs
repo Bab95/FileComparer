@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FileComparer.Models
+﻿namespace FileComparer.Models
 {
     /// <summary>
     /// Implementation of a generic pair class to hold two related objects.

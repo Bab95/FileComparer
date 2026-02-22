@@ -35,6 +35,19 @@ namespace FileComparer.Models.Sorting
         /// </summary>
         private readonly bool normalize;
 
+        /// <summary>
+        /// Initializes a new instance of the CsvFileSortingStrategy class with the specified chunk size, delimiter,
+        /// sort column index, and normalization option.
+        /// </summary>
+        /// <remarks>Use this constructor to configure sorting behavior for CSV files, including
+        /// performance and sorting accuracy. Adjusting chunk size can affect memory usage and processing
+        /// speed.</remarks>
+        /// <param name="chunkSize">The maximum number of rows to process in each chunk when sorting large CSV files. Must be greater than zero.</param>
+        /// <param name="delimiter">The character used to separate columns in the CSV file. Cannot be null or empty.</param>
+        /// <param name="sortColumnIndex">The zero-based index of the column to use for sorting rows in the CSV file. Must be within the range of
+        /// available columns.</param>
+        /// <param name="normalize">A value indicating whether to normalize column values before sorting. If <see langword="true"/>,
+        /// normalization is applied; otherwise, sorting uses raw values.</param>
         public CsvFileSortingStrategy(int chunkSize, string delimiter, int sortColumnIndex, bool normalize)
         {
             this.chunkSize = chunkSize;

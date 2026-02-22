@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FileComparer.Models
+﻿namespace FileComparer.Models
 {
     /// <summary>
     /// ChunkData is a class that encapsulates a chunk of data from two files being compared. 
