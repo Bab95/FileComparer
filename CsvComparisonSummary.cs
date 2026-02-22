@@ -73,9 +73,8 @@ namespace FileComparer
                     count++;
                     var firstRecord = difference.First;
                     var secondRecord = difference.Second;
-                    //Logger.LogInfo("========================================");
-                    Logger.LogInfo($"File1: {firstRecord.ToString()}");
-                    secondRecord.PrintWithDifferences(firstRecord);
+                    firstRecord.PrintWithDifferences(secondRecord, FileName.File1);
+                    secondRecord.PrintWithDifferences(firstRecord, FileName.File2);
                     Logger.LogInfo("========================================================================================");
                 }
             }

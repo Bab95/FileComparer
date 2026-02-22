@@ -81,11 +81,16 @@ namespace FileComparer.Models
         /// for diagnostic or informational purposes and writes directly to the console.</remarks>
         /// <param name="other">The CSV record to compare against. Fields that differ from this record will be visually highlighted in the
         /// output.</param>
-        public void PrintWithDifferences(CsvRecord other)
+        public void PrintWithDifferences(CsvRecord other, FileName fileName)
         {
-            string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            int threadId = Thread.CurrentThread.ManagedThreadId;
-            Console.Write($"[{timestamp}] [Thread {threadId}] [Info] File2:");
+            var differenceConsoleColor = ConsoleColor.Green;
+
+            if (fileName == FileName.File2)
+            {
+                differenceConsoleColor = ConsoleColor.Red;
+            }
+
+            Console.Write($"[Info] {fileName}:");
 
             for (int i = 0; i < NormalizedField.Count; i++)
             {
@@ -97,12 +102,13 @@ namespace FileComparer.Models
                 }
                 else
                 {
-                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.ForegroundColor = differenceConsoleColor;
                     Console.Write($"{fieldValue}");
                     Console.ResetColor();
                     Console.Write($"{delimiter}");
                 }
             }
+
             Console.WriteLine();
         }
 
