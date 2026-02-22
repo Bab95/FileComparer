@@ -35,10 +35,12 @@ namespace FileComparer
         /// <param name="recordDifferences">A thread-safe queue containing pairs of CsvRecord objects that represent differences found during CSV
         /// comparison. Must not be null.</param>
         /// <param name="outputKind">The output format to use when presenting the comparison summary.</param>
-        public CsvComparisonSummary(ConcurrentQueue<Pair<CsvRecord, CsvRecord>> recordDifferences, OutputKind outputKind) 
+        /// <param name="outputPath">the output path to where summary should be written.
+        public CsvComparisonSummary(ConcurrentQueue<Pair<CsvRecord, CsvRecord>> recordDifferences, OutputKind outputKind, string outputPath) 
         {
             this.recordDifferences = recordDifferences;
             this.outputKind = outputKind;
+            this.outpath = outputPath;
         }
 
         /// <summary>

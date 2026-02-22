@@ -209,7 +209,8 @@ public class CsvFileComparer : ChunkedFileComparer
     /// printing the summary.</remarks>
     private void PrintSummary()
     {
-        CsvComparisonSummary summary = new CsvComparisonSummary(recordDifferences, outputKind);
+        CsvComparisonSummary summary = new CsvComparisonSummary(recordDifferences, outputKind, this.OutputPath);
+        
         summary.PrintSummary();
     }
 
@@ -260,6 +261,32 @@ public class CsvFileComparer : ChunkedFileComparer
                     linesChunk1.Clear();
                     linesChunk2.Clear();
                 }
+            }
+
+            if (linesChunk1.Count > 0 || linesChunk2.Count > 0)
+            {
+                List<CsvRecord> chunk1ToProcess = linesChunk1.Select(line => new CsvRecord(lineNumber, line, delimiter, shouldNormalize)).ToList();
+                List<CsvRecord> chunk2ToProcess = linesChunk2.Select(line => new CsvRecord(lineNumber, line, delimiter, shouldNormalize)).ToList();
+                CsvChunkData csvChunkData = new CsvChunkData(chunk1ToProcess, chunk2ToProcess, lineNumber);
+
+                lock (activeWorkerLock)
+                {
+                    ++countofActiveWorkers;
+                }
+                ThreadPool.QueueUserWorkItem(new WaitCallback(ProcessCsvChunk), csvChunkData);
+                linesChunk1.Clear();
+                linesChunk2.Clear();
+            }
+
+            if (reader1.ReadLine() != null
+                && reader2.ReadLine() == null) //There are still some lines left in File1
+            {
+                Logger.LogError("File2 is missing some records!!!");
+            }
+            else if (reader2.ReadLine() != null
+                && reader1.ReadLine() == null) // There are still lines left in File2
+            {
+                Logger.LogError("File1 is missing some records!!!");
             }
         }
     }

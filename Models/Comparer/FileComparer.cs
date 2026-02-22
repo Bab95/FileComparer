@@ -21,14 +21,6 @@
         public string File2Path { get; set; }
 
         /// <summary>
-        /// Gets or sets the output directory path where generated files will be saved.
-        /// </summary>
-        /// <remarks>The specified path should be a valid directory. If the directory does not exist, it
-        /// may need to be created before saving files. Relative paths are resolved based on the application's working
-        /// directory.</remarks>
-        public string OutPath { get; set; }
-
-        /// <summary>
         /// Gets a value indicating whether the compared files have identical content.
         /// </summary>
         public bool AreFilesSame { get; internal set; }
