@@ -1,3 +1,4 @@
+using System.Data;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -236,10 +237,24 @@ namespace FileComparer.Models
         private static bool TryNormalizeDate(string value, out string normalized)
         {
             normalized = string.Empty;
+            var formats = new[]
+            {
+                "dd-MM-yyyy",
+                "d-M-yyyy",
+                "dd/MM/yyyy",
+                "d/M/yyyy"
+            };
+
             if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var parsed) ||
                 DateTime.TryParse(value, CultureInfo.CurrentCulture, DateTimeStyles.AllowWhiteSpaces, out parsed))
             {
-                normalized = parsed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                normalized = parsed.ToString("MM-dd-yyyy", CultureInfo.InvariantCulture);
+                return true;
+            }
+            else if(DateTime.TryParseExact(value, formats, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out parsed) ||
+                    DateTime.TryParseExact(value, formats, CultureInfo.CurrentCulture, DateTimeStyles.AllowWhiteSpaces, out parsed))
+            {
+                normalized = parsed.ToString("MM-dd-yyyy", CultureInfo.InvariantCulture);
                 return true;
             }
 
