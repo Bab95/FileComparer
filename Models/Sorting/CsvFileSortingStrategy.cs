@@ -61,10 +61,11 @@ namespace FileComparer.Models.Sorting
         /// </summary>
         /// <param name="inputFilePath">The path to the input CSV file.</param>
         /// <param name="outputFilePath">The path to the output CSV file.</param>
-        public void DefaultSort(string inputFilePath, string outputFilePath)
+        /// <param name="shouldSkipHeader">A flag indicating whether to skip the first line of the input file, typically used to ignore headers.</param>
+        public void DefaultSort(string inputFilePath, string outputFilePath, bool shouldSkipHeader = true)
         {
             ISortingStrategy defaultSorting = new DataFileSortingStrategy(chunkSize);
-            defaultSorting.Sort(inputFilePath, outputFilePath);
+            defaultSorting.Sort(inputFilePath, outputFilePath, shouldSkipHeader);
         }
 
         /// <summary>
@@ -72,10 +73,10 @@ namespace FileComparer.Models.Sorting
         /// </summary>
         /// <param name="inputFilePath">The path to the input CSV file.</param>
         /// <param name="outputFilePath">The path to the output CSV file.</param>
-        public void Sort(string inputFilePath, string outputFilePath)
+        public void Sort(string inputFilePath, string outputFilePath, bool skipFirstLine = true)
         {
             // TODO: Implement external sorting for CSV files based on the specified sort column and normalization settings.
-            this.DefaultSort(inputFilePath, outputFilePath);
+            this.DefaultSort(inputFilePath, outputFilePath, skipFirstLine);
         }
     }
 }

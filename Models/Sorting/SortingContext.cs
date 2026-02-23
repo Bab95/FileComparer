@@ -32,9 +32,10 @@ namespace FileComparer.Models.Sorting
         /// file path is writable and that the input file exists and is accessible.</remarks>
         /// <param name="inputFilePath">The path to the file containing the data to be sorted. Cannot be null or empty.</param>
         /// <param name="outputFilePath">The path to the file where the sorted data will be written. Cannot be null or empty.</param>
-        public void Sort(string inputFilePath, string outputFilePath)
+        /// <param name="ignoreHeader">A flag indicating whether to ignore the first line of the input file, typically used to skip headers during sorting.</param>
+        public void Sort(string inputFilePath, string outputFilePath, bool ignoreHeader = true)
         {
-            sortingStrategy.Sort(inputFilePath, outputFilePath);
+            sortingStrategy.Sort(inputFilePath, outputFilePath, ignoreHeader);
         }
     }
 }

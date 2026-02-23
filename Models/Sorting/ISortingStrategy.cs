@@ -16,6 +16,7 @@ namespace FileComparer.Models.Sorting
         /// may be thrown.</remarks>
         /// <param name="inputFilePath">The path to the file containing the data to be sorted. Must refer to an existing file.</param>
         /// <param name="outputFilePath">The path to the file where the sorted data will be written. If the file exists, it will be overwritten.</param>
-        void Sort(string inputFilePath, string outputFilePath);
+        /// <param name="skipFirstLine">A flag indicating whether to skip the first line of the input file, typically used to ignore headers.</param>
+        void Sort(string inputFilePath, string outputFilePath, bool skipFirstLine = true);
     }
 }

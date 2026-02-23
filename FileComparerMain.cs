@@ -47,8 +47,8 @@ namespace FileComparer
                     string sortedFile2 = Path.GetTempFileName();
                     tempFiles.Add(sortedFile1);
                     tempFiles.Add(sortedFile2);
-                    sortingContext.Sort(file1Path, sortedFile1);
-                    sortingContext.Sort(file2Path, sortedFile2);
+                    sortingContext.Sort(file1Path, sortedFile1, true);
+                    sortingContext.Sort(file2Path, sortedFile2, true);
                     file1Path = sortedFile1;
                     file2Path = sortedFile2;
                 }

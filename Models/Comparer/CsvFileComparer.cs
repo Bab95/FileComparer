@@ -32,6 +32,21 @@ public class CsvFileComparer : ChunkedFileComparer
     /// </summary>
     public static ConcurrentQueue<Pair<CsvRecord, CsvRecord>> recordDifferences { get; set; } = new ConcurrentQueue<Pair<CsvRecord, CsvRecord>>();
 
+    /// <summary>
+    /// First header record from the first CSV file. 
+    /// This is used to store the header information if the ignoreHeader flag is set to false, 
+    /// allowing for proper handling of the header row during comparison and sorting operations. 
+    /// If ignoreHeader is true, this variable will not be used and the first row of each CSV file will be treated as data rather than a header.
+    /// </summary>
+    public CsvRecord headerRecord1 { get; set; }
+
+    /// <summary>
+    /// Second header record from the second CSV file. 
+    /// Similar to headerRecord1, this variable is used to store the header information from the second CSV file
+    /// when the ignoreHeader flag is set to false. 
+    /// It allows for consistent handling of the header row during comparison and sorting operations, ensuring that the header does not affect the comparison results if it is present in both files. If ignoreHeader is true, this variable will not be used and the first row of each CSV file will be treated as data rather than a header.
+    /// </summary>
+    public CsvRecord headerRecord2 { get; set; }
 
     /// <summary>
     /// Chunk size for processing the CSV files. This determines how many records are read and processed in memory at a time during sorting and comparison operations.
@@ -132,6 +147,7 @@ public class CsvFileComparer : ChunkedFileComparer
                                                     delimiter,
                                                     0, // for simplicity we are sorting based on first column, this can be extended to take sorting column number as input. 
                                                     shouldNormalize));
+
         Logger.LogInfo("CSV sorting strategy configured with normalization.");
     }
 
@@ -153,12 +169,12 @@ public class CsvFileComparer : ChunkedFileComparer
             }
 
             string sortedFile1Path = $"{Path.Combine(tempDirectory, Path.GetFileNameWithoutExtension(File1Path))}_sorted{Path.GetExtension(File1Path)}";
-            this.SortingContext.Sort(File1Path, sortedFile1Path);
+            this.SortingContext.Sort(File1Path, sortedFile1Path, ignoreHeader: !this.ignoreHeader);
             Logger.LogInfo($"Temporary sorted File Path: {sortedFile1Path}");
             File1Path = sortedFile1Path;
             
             string sortedFile2Path = $"{Path.Combine(tempDirectory, Path.GetFileNameWithoutExtension(File2Path))}_sorted{Path.GetExtension(File2Path)}";
-            this.SortingContext.Sort(File2Path, sortedFile2Path);
+            this.SortingContext.Sort(File2Path, sortedFile2Path, ignoreHeader: !this.ignoreHeader);
             File2Path = sortedFile2Path;
 
             Logger.LogInfo($"Temporary sorted File Path2: {sortedFile2Path}");
@@ -178,9 +194,34 @@ public class CsvFileComparer : ChunkedFileComparer
     /// <exception cref="NotImplementedException">Thrown to indicate that the CSV comparison functionality is not yet implemented.</exception>
     public override void Compare(object obj)
     {
+
+        Logger.LogInfo($"Parameter details - File1: {this.File1Path}, File2: {this.File2Path}, Delimiter: {this.delimiter}, Normalize: {this.shouldNormalize}, IgnoreHeader: {this.ignoreHeader}");
+        // handle headers i.e. read and store the header record if ignoreHeader is false, and configure the sorting strategy to ignore the header row when sorting the files. This ensures that the header does not affect the comparison results if it is present in both files. If ignoreHeader is true, then the first row of each CSV file will be treated as data rather than a header, and no special handling will be applied to it during sorting or comparison.
+        if (this.ignoreHeader == false)
+        {
+            using (StreamReader reader1 = new StreamReader(this.File1Path))
+            {
+                string header1 = reader1.ReadLine();
+                this.headerRecord1 = new CsvRecord(0, header1, delimiter, this.shouldNormalize);
+            }
+
+            using (StreamReader reader2 = new StreamReader(this.File2Path))
+            {
+                string header2 = reader2.ReadLine();
+                this.headerRecord2 = new CsvRecord(0, header2, delimiter, this.shouldNormalize);
+            }
+        }
+
         this.Sort();
         try
         {
+            if (!headerRecord1.Equals(headerRecord2))
+            {
+                Logger.LogError("Header records are different. This may impact the comparison results.");
+                headerRecord1.PrintWithDifferences(headerRecord2, FileName.File1);
+                headerRecord2.PrintWithDifferences(headerRecord1, FileName.File2);
+            }
+
             var start = Stopwatch.StartNew();
             CompareAllLines(Constants.ChunkSize);
             start.Stop();

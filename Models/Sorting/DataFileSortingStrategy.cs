@@ -45,7 +45,8 @@ namespace FileComparer.Models.Sorting
         /// finished. If an error occurs during processing, temporary files may be deleted as part of cleanup.</remarks>
         /// <param name="inputFilePath">The path to the file containing the unsorted data. Must refer to an existing file.</param>
         /// <param name="outputFilePath">The path to the file where the sorted data will be written. If the file exists, it will be overwritten.</param>
-        public void Sort(string inputFilePath, string outputFilePath)
+        /// <param name="shouldSkipFirstLine">A flag indicating whether to skip the first line of the input file, typically used to ignore headers.</param>
+        public void Sort(string inputFilePath, string outputFilePath, bool shouldSkipFirstLine)
         {
             List<string> tempFiles = new List<string>();
             List<Task> tasks = new List<Task>();
@@ -63,6 +64,15 @@ namespace FileComparer.Models.Sorting
             {
                 using (var reader = new StreamReader(inputFilePath))
                 {
+                    if (shouldSkipFirstLine)
+                    {
+                        if (!reader.EndOfStream)
+                            reader.ReadLine();
+                        else
+                            Logger.LogWarn("Input file is empty, Even headers are not present");
+                        Logger.LogInfo("Files are to be compared with headers!!");
+                    }
+
                     int chunkIndex = 0;
                     List<string> chunk = new List<string>();
                     while (!reader.EndOfStream)
