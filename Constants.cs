@@ -29,6 +29,6 @@ namespace FileComparer
         /// <summary>
         /// Max no of differences to print on console. This is to control the console output and make it readable.
         /// </summary>
-        public static readonly int MaxDifferenceToPrintOnConsole = 100;
+        public static readonly int MaxDifferenceToPrintOnConsole = 10;
     }
 }

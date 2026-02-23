@@ -94,8 +94,8 @@ namespace FileComparer.Models
 
             for (int i = 0; i < NormalizedField.Count; i++)
             {
-                string fieldValue = GetField(i);
-                string otherFieldValue = other.GetField(i);
+                string fieldValue = GetNormalizedField(i);
+                string otherFieldValue = other.GetNormalizedField(i);
                 if (string.Equals(fieldValue, otherFieldValue, StringComparison.Ordinal))
                 {
                     Console.Write($"{fieldValue}{delimiter}");
