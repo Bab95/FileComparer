@@ -47,8 +47,8 @@ public abstract class CsvCompareOptionsBase : DataCompareOptionsBase
     public int SortColumn { get; set; }
 
     [Option("ignoreHeader", Required = false,
-        HelpText = "Ignore header row")]
-    public bool IgnoreHeader { get; set; }
+        HelpText = "Ignore header row, default false i.e. first row is considered as header")]
+    public bool IgnoreHeader { get; set; } = false;
 }
 
 public abstract class ExcelCompareOptionsBase : DataCompareOptionsBase

@@ -55,6 +55,14 @@ public class CsvFileComparer : ChunkedFileComparer
     private bool shouldNormalize { get; set; }
 
     /// <summary>
+    /// Flag indicating whether to ignore the header row in the CSV files during comparison. When set to true, the first row of each CSV file is treated as a header and is excluded from the comparison process. This is useful when the CSV files contain column names that should not be considered as part of the data comparison.
+    /// if ignore header is true, then the sorting strategy will also be configured to ignore the header row when sorting the files, ensuring that the header does not affect the sorting order or comparison results.
+    /// if ignore header is true, then first row is data.
+    /// if ignore header is false, then first row is header and will be ignored for comparison and sorting.
+    /// </summary>
+    public bool ignoreHeader { get; set; } = false;
+
+    /// <summary>
     /// Initializes a new instance of the CsvFileComparer class with the specified file paths.
     /// </summary>
     /// <param name="filePath1">The path to the first CSV file.</param>

@@ -75,7 +75,8 @@ namespace FileComparer
                 comparer = new CsvFileComparer(file1Path, file2Path, opts.Delimiter, opts.Sort, opts.Normalize)
                 {
                     outputKind = opts.OutPath != null ? OutputKind.FileWriting : OutputKind.OnConsole,
-                    OutputPath = opts.OutPath == null ? string.Empty : opts.OutPath
+                    OutputPath = opts.OutPath == null ? string.Empty : opts.OutPath,
+                    ignoreHeader = opts.IgnoreHeader
                 };
 
                 comparer.Compare(mainObject);
