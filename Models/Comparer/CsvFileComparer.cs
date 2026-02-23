@@ -215,7 +215,7 @@ public class CsvFileComparer : ChunkedFileComparer
         this.Sort();
         try
         {
-            if (!headerRecord1.Equals(headerRecord2))
+            if (!this.ignoreHeader && !headerRecord1.Equals(headerRecord2))
             {
                 Logger.LogError("Header records are different. This may impact the comparison results.");
                 headerRecord1.PrintWithDifferences(headerRecord2, FileName.File1);
