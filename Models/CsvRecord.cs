@@ -63,6 +63,13 @@ namespace FileComparer.Models
         /// <returns>A list of parsed fields from the CSV record.</returns>
         private static List<string> ParseRecord(string record, string delimiter, bool normalize)
         {
+            delimiter = delimiter switch
+            {
+                "\\t" => "\t",
+                "\\n" => "\n",
+                "\\r" => "\r",
+                _ => delimiter
+            };
             var fields = new List<string>();
             var rawFields = record.Split(new string[] { delimiter }, StringSplitOptions.None);
             foreach (var field in rawFields)
@@ -98,14 +105,13 @@ namespace FileComparer.Models
                 string otherFieldValue = other.GetNormalizedField(i);
                 if (string.Equals(fieldValue, otherFieldValue, StringComparison.Ordinal))
                 {
-                    Console.Write($"{fieldValue}{delimiter}");
+                    Console.Write($"{fieldValue} ");
                 }
                 else
                 {
                     Console.ForegroundColor = differenceConsoleColor;
-                    Console.Write($"{fieldValue}");
+                    Console.Write($"{fieldValue} ");
                     Console.ResetColor();
-                    Console.Write($"{delimiter}");
                 }
             }
 
