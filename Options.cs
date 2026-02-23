@@ -37,7 +37,7 @@ public abstract class CsvCompareOptionsBase : DataCompareOptionsBase
 {
     [Option("delimiter", Required = false, Default = ",",
         HelpText = "CSV delimiter")]
-    public char Delimiter { get; set; }
+    public string Delimiter { get; set; } = ",";
 
     [Option("normalize", Required = false, HelpText = "Normalize before compare")]
     public bool Normalize { get; set; } = false;

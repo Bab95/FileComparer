@@ -72,7 +72,7 @@ namespace FileComparer
             
             try
             {
-                comparer = new CsvFileComparer(file1Path, file2Path, opts.Delimiter.ToString(), opts.Sort, opts.Normalize)
+                comparer = new CsvFileComparer(file1Path, file2Path, opts.Delimiter, opts.Sort, opts.Normalize)
                 {
                     outputKind = opts.OutPath != null ? OutputKind.FileWriting : OutputKind.OnConsole,
                     OutputPath = opts.OutPath == null ? string.Empty : opts.OutPath

@@ -2,7 +2,7 @@
   "profiles": {
     "FileComparer": {
       "commandName": "Project",
-      "commandLineArgs": "CompareCsv -s -i C:\\Users\\babnishvyas\\Downloads\\sample_50x25_mixed_types.csv -j C:\\Users\\babnishvyas\\Downloads\\sample_50x25_mixed_types_2.csv --delimiter \",\" --normalize",
+      "commandLineArgs": "CompareCsv -s -i C:\\Users\\babnishvyas\\Downloads\\sample_50x25_mixed_types.csv -j C:\\Users\\babnishvyas\\Downloads\\sample_50x25_mixed_types_2.csv --normalize",
       "workingDirectory": "Q:\\FileComparer\\bin\\Debug\\net8.0\\win-x64"
     }
   }
