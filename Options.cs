@@ -42,10 +42,6 @@ public abstract class CsvCompareOptionsBase : DataCompareOptionsBase
     [Option("normalize", Required = false, HelpText = "Normalize before compare")]
     public bool Normalize { get; set; } = false;
 
-    [Option("sortColumn", Required = false, Default = 1,
-        HelpText = "CSV sort column index (1-based)")]
-    public int SortColumn { get; set; }
-
     [Option("ignoreHeader", Required = false,
         HelpText = "Ignore header row, default false i.e. first row is considered as header")]
     public bool IgnoreHeader { get; set; } = false;
