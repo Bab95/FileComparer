@@ -97,7 +97,28 @@ namespace FileComparer
 
         public async Task RunPdfCompare(ComparePdfOptions opts)
         {
-            throw new NotImplementedException();
+            try
+            {
+                var options = new FileComparer.Models.Comparer.PdfComparison.PdfCompareOptions
+                {
+                    OutputPath = opts.OutPath
+                };
+
+                comparer = new FileComparer.Models.Comparer.PdfComparer(
+                    opts.File1InputPath, opts.File2InputPath, options);
+                comparer.Compare(mainObject);
+            }
+            catch (FileNotFoundException e)
+            {
+                Logger.LogError($"File not found: {e.FileName}");
+            }
+            catch (Exception e)
+            {
+                Logger.LogError($"Exception occurred while comparing PDF files: {e.Message}");
+                Logger.LogError(e.StackTrace ?? string.Empty);
+            }
+
+            await Task.CompletedTask;
         }
 
         private static string StripCsvHeader(string inputFilePath, out string header, List<string> tempFiles)

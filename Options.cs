@@ -60,12 +60,6 @@ public abstract class ExcelCompareOptionsBase : DataCompareOptionsBase
 
 public abstract class PdfCompareOptionsBase : CompareOptionsBase
 {
-    [Option("mode", Required = false, Default = "text",
-        HelpText = "Comparison mode: text|visual|metadata")]
-    public string Mode { get; set; }
-
-    [Option("ignoreWhitespace", Required = false)]
-    public bool IgnoreWhitespace { get; set; }
 }
 
 [Verb("CompareData", HelpText = "Compare Data(Raw text) files")]
@@ -83,7 +77,7 @@ public class CompareExcelOptions : ExcelCompareOptionsBase
 {
 }
 
-[Verb("ComparePdf", HelpText = "Compare PDF files (Not Implemented)")]
+[Verb("ComparePdf", HelpText = "Compare PDF files (text + pixel comparison)")]
 public class ComparePdfOptions : PdfCompareOptionsBase
 {
 }
