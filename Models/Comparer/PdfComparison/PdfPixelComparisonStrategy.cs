@@ -13,7 +13,9 @@ namespace FileComparer.Models.Comparer.PdfComparison
     /// </summary>
     public class PdfPixelComparisonStrategy : IPdfComparisonStrategy
     {
-        private const int RenderDpi = 300;
+        // Scaling factor for rendering. PDF base is 72 pts/inch.
+        // Factor 4.0 gives ~288 DPI — high accuracy without excessive memory use.
+        private const double RenderScalingFactor = 4.0;
 
         public string StrategyName => "Pixel";
 
@@ -22,8 +24,8 @@ namespace FileComparer.Models.Comparer.PdfComparison
             var result = new PdfComparisonResult { StrategyName = StrategyName };
 
             using var library = DocLib.Instance;
-            using var doc1 = library.GetDocReader(file1Path, new PageDimensions(RenderDpi));
-            using var doc2 = library.GetDocReader(file2Path, new PageDimensions(RenderDpi));
+            using var doc1 = library.GetDocReader(file1Path, new PageDimensions(RenderScalingFactor));
+            using var doc2 = library.GetDocReader(file2Path, new PageDimensions(RenderScalingFactor));
 
             result.File1PageCount = doc1.GetPageCount();
             result.File2PageCount = doc2.GetPageCount();
