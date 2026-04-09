@@ -1,43 +1,80 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Concurrent;
 
-namespace FileComparer.Models
+namespace FileComparer.Models.Comparer
 {
     /// <summary>
-    /// Compares File in chunks and prints Indexes.
-    /// Printing indexes is a heavy process should be used accordingly.
+    /// Provides functionality for comparing two data files line by line, supporting chunked processing and concurrent
+    /// difference tracking.
     /// </summary>
-    public class ChunkedFileComparer : FileComparer
+    /// <remarks>DataFileComparer extends ChunkedFileComparer to enable efficient comparison of large files by
+    /// processing them in chunks and utilizing worker threads. Differences between files are tracked in thread-safe
+    /// queues, allowing for concurrent access and aggregation of results. The class supports optional index printing
+    /// for detailed difference reporting. It is designed for scenarios where performance and scalability are important,
+    /// such as processing large datasets or log files. Thread safety is managed internally for worker coordination and
+    /// result collection.</remarks>
+    public class DataFileComparer : ChunkedFileComparer
     {
+        /// <summary>
+        /// Represents the current number of active worker instances.
+        /// </summary>
         public static int countOfActiveWorker = 0;
 
+        /// <summary>
+        /// Provides a synchronization object used to coordinate access to shared resources among active worker threads.
+        /// </summary>
+        /// <remarks>This object can be used with locking constructs, such as the lock statement, to
+        /// ensure thread-safe operations. It is intended for scenarios where multiple threads may attempt to access or
+        /// modify shared state concurrently.</remarks>
         public static object activeWorkerLock = new object();
 
+        /// <summary>
+        /// Gets or sets a value indicating whether index information should be printed during output operations.
+        /// </summary>
         public static bool printIndexes { get; set; } = false;
 
-        public OutputKind outputKind { get; set; }
-
+        /// <summary>
+        /// concurrent queue to hold file differences.
+        /// </summary>
         public static ConcurrentQueue<string> FileDifferences { get; set; } = new ConcurrentQueue<string>();
 
+        /// <summary>
+        /// concurrent queue to hold line differences.
+        /// </summary>
         public static ConcurrentQueue<int> LineDifferences { get; set; } = new ConcurrentQueue<int>();
 
-        public ChunkedFileComparer(string file1Path, string file2Path)
+        /// <summary>
+        /// Initializes a new instance of the DataFileComparer class using the specified file paths for comparison.
+        /// </summary>
+        /// <param name="file1Path">The path to the first data file to be compared. Cannot be null or empty.</param>
+        /// <param name="file2Path">The path to the second data file to be compared. Cannot be null or empty.</param>
+        public DataFileComparer(string file1Path, string file2Path) : base(file1Path, file2Path)
         {
-            this.File1Path = file1Path;
-            this.File2Path = file2Path;
+            File1Path = file1Path;
+            File2Path = file2Path;
         }
 
-        public ChunkedFileComparer(string file1Path, string file2Path, bool printIndexes_) 
+        /// <summary>
+        /// Initializes a new instance of the DataFileComparer class with the specified file paths and a flag indicating
+        /// whether to print index information during comparison.
+        /// </summary>
+        /// <param name="file1Path">The path to the first data file to be compared. Cannot be null or empty.</param>
+        /// <param name="file2Path">The path to the second data file to be compared. Cannot be null or empty.</param>
+        /// <param name="printIndexes_">A value indicating whether index information should be printed during the comparison. Specify <see
+        /// langword="true"/> to print indexes; otherwise, <see langword="false"/>.</param>
+        public DataFileComparer(string file1Path, string file2Path, bool printIndexes_)
             : this(file1Path, file2Path)
         {
             printIndexes = printIndexes_;
         }
 
-
+        /// <summary>
+        /// Compares the contents of the current instance with the specified object and processes all lines in chunks.
+        /// </summary>
+        /// <remarks>This method processes lines in chunks and waits for all active worker threads to
+        /// complete before returning. If a file is not found during processing, an error message is written to the
+        /// console. The method is thread-safe and blocks until all worker threads have finished.</remarks>
+        /// <param name="obj">The object to compare with the current instance. The comparison logic depends on the implementation of the
+        /// derived class.</param>
         public override void Compare(object obj)
         {
             int chunksize = Constants.ChunkSize;
@@ -46,10 +83,12 @@ namespace FileComparer.Models
             {
                 CompareAllLines(chunksize);
 
-            }catch (FileNotFoundException e)
+            }
+            catch (FileNotFoundException e)
             {
                 Console.WriteLine($"File not found. Please check file path {e.FileName} ");
-            }catch(Exception e)
+            }
+            catch (Exception e)
             {
                 Console.WriteLine($"Unknown Exception caught {e.Message}");
             }
@@ -65,13 +104,23 @@ namespace FileComparer.Models
             }
         }
 
-        public  void CompareAllLines(object obj)
+        /// <summary>
+        /// Compares all lines between two files in parallel, processing them in chunks of the specified size.
+        /// </summary>
+        /// <remarks>This method reads both files simultaneously and processes their lines in chunks to
+        /// optimize memory usage and performance. The comparison is performed using worker threads from the thread
+        /// pool. If the files differ in length, the method records which file has extra lines. Thread safety is
+        /// maintained when updating worker counts. The method should be called when both file paths are properly
+        /// initialized and accessible.</remarks>
+        /// <param name="obj">An object representing the chunk size to use when dividing lines for comparison. Must be an integer greater
+        /// than zero.</param>
+        public void CompareAllLines(object obj)
         {
             int chunkSize = (int)obj;
             List<string> linesChunk1 = new List<string>();
             List<string> linesChunk2 = new List<string>();
-            using (StreamReader reader1 = new StreamReader(this.File1Path))
-            using (StreamReader reader2 = new StreamReader(this.File2Path))
+            using (StreamReader reader1 = new StreamReader(File1Path))
+            using (StreamReader reader2 = new StreamReader(File2Path))
             {
                 int lineNumber = 0;
                 string line1 = null;
@@ -156,20 +205,28 @@ namespace FileComparer.Models
             }
         }
 
+        /// <summary>
+        /// Compares two sets of lines within a chunk and records differences based on the current configuration.
+        /// </summary>
+        /// <remarks>This method enqueues line numbers or detailed difference information depending on the
+        /// value of the printIndexes setting. It also updates the active worker count upon completion. Thread safety is
+        /// ensured when modifying the worker count.</remarks>
+        /// <param name="data">An object containing chunk data to be processed. Must be of type ChunkData; otherwise, an exception may
+        /// occur.</param>
         public static void ProcessChunk(object data)
         {
             ChunkData chunkData = (ChunkData)data;
-            
+
             for (int index = 0; index < chunkData.Lines1.Count; index++)
             {
                 string _line1 = chunkData.Lines1[index];
                 string _line2 = chunkData.Lines2[index];
                 if (!_line1.Equals(_line2, StringComparison.Ordinal))
                 {
-                    
+
                     if (printIndexes == false)
                     {
-                        LineDifferences.Enqueue(chunkData.LineNumber + index + 1 );
+                        LineDifferences.Enqueue(chunkData.LineNumber + index + 1);
                     }
                     else if (printIndexes == true)
                     {
@@ -186,10 +243,10 @@ namespace FileComparer.Models
 
                         currentDiff = $"Line number : {chunkData.LineNumber + index + 1} ";
                         bool isFirstDiff = true;
-                        int diff_index = 0;
+
                         foreach (var _diff in strDiff)
                         {
-                            diff_index++;
+
                             if (!isFirstDiff)
                             {
                                 currentDiff += " , ";
@@ -198,13 +255,7 @@ namespace FileComparer.Models
 
                             isFirstDiff = false;
 
-                            currentDiff += $" At:{diff_index}" + 
-                                            " (" + 
-                                            _diff.Char1.ToString() +
-                                            " | " +
-                                            _diff.Char2.ToString()
-                                            +
-                                            ")";
+                            currentDiff += _diff.Index;
                         }
                         FileDifferences.Enqueue(currentDiff);
                     }
